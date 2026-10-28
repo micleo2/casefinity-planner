@@ -1,5 +1,7 @@
 import { DEFAULT_BOTTOM_FILLET, DEFAULT_SETTINGS, boundingBox, buildHeight, newBin } from "./bins.ts";
 import type { Bin, BinType, Layout, Settings } from "./bins.ts";
+import { newItem, placeInBin, sizeItem } from "./sizing.ts";
+import type { Item, ItemShape, Orientation } from "./sizing.ts";
 
 /**
  * Pure layout logic: placement rules, the checks panel, and (de)serialization.
@@ -124,13 +126,29 @@ export function runChecks(layout: Layout): Check[] {
     );
   }
 
+  const items = new Map(layout.items.map((it) => [it.id, it]));
+  const placed = new Set(layout.bins.map((b) => b.itemId));
+  const missing = layout.items.filter((it) => !placed.has(it.id));
+  if (missing.length) {
+    warn(`Not in the layout yet: ${missing.map((it) => it.name || "unnamed item").join(", ")}. Auto-pack places them.`);
+  }
+  const cramped = layout.bins.filter((b) => {
+    const item = b.itemId ? items.get(b.itemId) : undefined;
+    if (!item) return false;
+    const sizing = sizeItem(item, s);
+    return !sizing.ok || placeInBin(item, sizing, b, s) === null;
+  });
+  if (cramped.length) {
+    fail(`Too small for its item: ${cramped.map((b) => `${b.title || "bin"} (${b.unitsX}×${b.unitsY})`).join(", ")}.`);
+  }
+
   return checks;
 }
 
 // ---- persistence -----------------------------------------------------------
 
 export function emptyLayout(): Layout {
-  return { version: 1, settings: { ...DEFAULT_SETTINGS }, bins: [] };
+  return { version: 1, settings: { ...DEFAULT_SETTINGS }, bins: [], items: [] };
 }
 
 const BIN_TYPES: BinType[] = ["no-lid", "with-lid", "double-sided", "solid"];
@@ -155,6 +173,8 @@ function renamedKeys(obj: unknown): Record<string, unknown> {
   return out;
 }
 
+const validId = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9]{1,16}$/.test(v);
+
 /** Parse untrusted JSON (a file or localStorage) into a valid Layout. Throws on garbage. */
 export function parseLayout(json: string): Layout {
   const raw = JSON.parse(json);
@@ -171,16 +191,35 @@ export function parseLayout(json: string): Layout {
     const base = newBin(num(b.col, 0), num(b.row, 0), Math.max(1, num(b.unitsX, 1)), Math.max(1, num(b.unitsY, 1)));
     return {
       ...base,
-      id: typeof b.id === "string" && /^[a-z0-9]{1,16}$/.test(b.id) ? b.id : base.id,
+      id: validId(b.id) ? b.id : base.id,
       title: typeof b.title === "string" ? b.title : "",
       type: BIN_TYPES.includes(b.type as BinType) ? (b.type as BinType) : "no-lid",
       pullTab: typeof b.pullTab === "boolean" ? b.pullTab : true,
       height: typeof b.height === "number" && b.height > 0 ? b.height : null,
       lidLabel: typeof b.lidLabel === "string" ? b.lidLabel : "",
       bottomFillet: num(b.bottomFillet, DEFAULT_BOTTOM_FILLET),
+      itemId: validId(b.itemId) ? b.itemId : null,
     };
   });
-  return { version: 1, settings, bins };
+  const items: Item[] = (Array.isArray(raw.items) ? raw.items : []).map((it: Record<string, unknown>) => {
+    const shape: ItemShape = it.shape === "cylinder" ? "cylinder" : "box";
+    const base = newItem(shape);
+    const orients: Orientation[] = shape === "box" ? ["auto", "as-entered"] : ["auto", "standing", "lying"];
+    return {
+      ...base,
+      id: validId(it.id) ? it.id : base.id,
+      name: typeof it.name === "string" ? it.name.slice(0, 60) : "",
+      length: num(it.length, base.length),
+      width: num(it.width, base.width),
+      height: num(it.height, base.height),
+      diameter: num(it.diameter, base.diameter),
+      qty: Math.max(1, Math.round(num(it.qty, 1))),
+      orient: orients.includes(it.orient as Orientation) ? (it.orient as Orientation) : "auto",
+    };
+  });
+  const known = new Set(items.map((it) => it.id));
+  for (const b of bins) if (b.itemId && !known.has(b.itemId)) b.itemId = null;
+  return { version: 1, settings, bins, items };
 }
 
 export function serializeLayout(layout: Layout): string {

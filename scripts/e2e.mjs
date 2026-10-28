@@ -49,7 +49,10 @@ ws.onmessage = (e) => {
   if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
   if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description ?? "exception");
   if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map((a) => a.value ?? a.description).join(" "));
+  // confirm() dialogs ("Replace the bins…?") are accepted, as a user would
+  if (m.method === "Page.javascriptDialogOpening") { dialogs.push(m.params.message); ws.send(JSON.stringify({ id: ++seq, method: "Page.handleJavaScriptDialog", params: { accept: true } })); }
 };
+const dialogs = [];
 const send = (method, params = {}) => new Promise((r) => { const id = ++seq; pending.set(id, r); ws.send(JSON.stringify({ id, method, params })); });
 const js = async (expression) => {
   const res = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
@@ -174,6 +177,7 @@ await setType(0, 12, "solid");
 console.log("ok   set lid / double-sided / solid types");
 
 // --- preview renders (WebGL via SwiftShader) --------------------------------------
+await js(`document.getElementById("view-bin").click()`);
 await poll(() => text("preview-status").then((t) => t.includes("built in")), 60000);
 console.log(`ok   preview: ${await text("preview-status")}`);
 
@@ -224,12 +228,83 @@ assert.equal(await presetText(), "--Custom--");
 console.log("ok   Apache 3800 → 21×14, Apache 4800 → 26×18, border units re-apply, --Custom-- restores defaults");
 
 // --- screenshot for review --------------------------------------------------------
+await js(`document.getElementById("view-bin").click()`);
 await drag(await cellXY(3, 12), await cellXY(3, 12));
 await poll(() => text("preview-status").then((t) => t.startsWith("3×5")), 60000);
 await sleep(500);
 await js(`window.scrollTo(0, 0)`);
 const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
 writeFileSync(join(out, "e2e.png"), Buffer.from(shot.result.data, "base64"));
+
+// --- items → auto-pack → whole-case preview -----------------------------------------
+await pickPreset("Apache 3800");
+await js(`(() => { const i = document.getElementById("sideBorderUnits"); i.value = "4"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); })()`);
+assert.equal(await area(), "21×14");
+await js(`location.hash = "#items"`);
+await poll(() => js(`!document.getElementById("items-page").hidden`));
+async function addItem(shape, name, dims, qty = 1, orient = null) {
+  await js(`document.getElementById("add-${shape}").click()`);
+  await js(`(() => {
+    const row = document.querySelector("#items-page tbody tr:last-child");
+    const set = (el, v) => { el.value = String(v); el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
+    set(row.querySelector("input[type=text]"), ${JSON.stringify(name)});
+    const dims = row.querySelectorAll(".dims input");
+    ${JSON.stringify(dims)}.forEach((v, i) => set(dims[i], v));
+    set(row.querySelector("td:nth-child(4) input"), ${qty});
+    ${orient ? `set(row.querySelector("td:nth-child(5) select"), ${JSON.stringify(orient)});` : ""}
+  })()`);
+}
+await addItem("box", "Multimeter", [182, 88, 52]);
+await addItem("box", "12 V battery", [95, 55, 75], 2);
+await addItem("cylinder", "Test leads", [95, 30]);
+await addItem("box", "Bit set", [80, 45, 30]);
+await addItem("box", "Tape measure", [70, 70, 40]);
+await addItem("box", "Zip ties tub", [65, 50, 100], 1, "as-entered");
+const chips = await js(`[...document.querySelectorAll("#items-page .bin-chip")].map((e) => e.textContent)`);
+assert.deepEqual([chips[0], chips[2], chips[3], chips[4], chips[5]], ["13 × 4", "3 × 7", "4 × 3", "6 × 4", "5 × 4"], chips.join(", "));
+assert.ok(!chips.includes("—"), chips.join(", "));
+// the explanation follows the selected row
+await js(`document.querySelector("#items-page tbody tr:nth-child(5) input").focus()`);
+assert.match(await text("item-why"), /Why 6 × 4\?[\s\S]*Tape measure[\s\S]*on its side|on end/);
+assert.match(await text("items-totals"), /6 items need \d+ of 294 grid units/);
+console.log(`ok   items page: 6 items sized → ${chips.join(", ")}`);
+
+await js(`document.getElementById("items-autopack").click()`);
+await poll(() => js(`!document.getElementById("app").hidden && document.querySelectorAll("#autopack-options .option").length >= 2`));
+const optionTitles = await js(`[...document.querySelectorAll("#autopack-options .option strong")].map((e) => e.textContent)`);
+assert.ok(optionTitles.some((t) => t.includes("columns")) && optionTitles.some((t) => t.includes("rows")), optionTitles.join(", "));
+await js(`document.querySelector("#autopack-options .option button").click()`);
+await poll(() => bins().then((b) => b.length > 0 && b.length !== 17));
+assert.equal(dialogs.length, 1, "asked before replacing the existing bins");
+checks = await text("checks");
+assert.match(checks, /✓ Transport-safe/);
+assert.match(checks, /✓ All grid units filled/);
+assert.doesNotMatch(checks, /Not in the layout|Too small for its item|✗/);
+const linked = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => b.itemId).length`);
+assert.equal(linked, 6);
+// only the multimeter's own 13-long bin may be warp length; growth adds none
+const long = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => Math.max(b.unitsX, b.unitsY) > 9).map((b) => b.title)`);
+assert.deepEqual(long, ["Multimeter"]);
+console.log(`ok   auto-pack: ${optionTitles.length} layouts (${optionTitles.join(" / ")}), applied: ${(await bins()).length} bins, all checks pass`);
+
+// whole-case preview: a WebGL canvas and one fill row per item bin
+assert.equal(await js(`document.getElementById("view-case").getAttribute("aria-pressed")`), "true");
+await poll(() => js(`!!document.querySelector("#case-view canvas") && document.querySelectorAll("#fill-body tr").length === 6`), 30000);
+const fillRows = await js(`[...document.querySelectorAll("#fill-body tr")].map((r) => r.textContent)`);
+assert.ok(fillRows.every((r) => /\d+\.\d\d \/ \d+\.\d\d L\d+ %\d+ %/.test(r)), fillRows.join("\n"));
+console.log("ok   whole-case 3D preview renders with a fill table for 6 bins");
+await sleep(500);
+const caseShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+writeFileSync(join(out, "e2e-case.png"), Buffer.from(caseShot.result.data, "base64"));
+
+await send("Page.reload");
+await poll(() => text("status").then((t) => t.includes("ready")));
+assert.equal(await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).items.length`), 6);
+await js(`location.hash = "#items"`);
+await poll(() => js(`document.querySelectorAll("#items-page tbody tr").length === 6`));
+const itemsShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+writeFileSync(join(out, "e2e-items.png"), Buffer.from(itemsShot.result.data, "base64"));
+console.log("ok   items survive a reload");
 
 assert.deepEqual(errors, [], `page errors:\n${errors.join("\n")}`);
 console.log(`\nall e2e checks passed — artifacts in ${out}`);

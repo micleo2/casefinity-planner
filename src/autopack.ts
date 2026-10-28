@@ -1,0 +1,150 @@
+import { newBin } from "./bins.ts";
+import type { Bin, Layout } from "./bins.ts";
+import { WARP_SPAN_MM, fitsBed } from "./layout.ts";
+import { autoPack } from "./pack.ts";
+import type { Demand, Growth, PackOption } from "./pack.ts";
+import { sizeItem } from "./sizing.ts";
+
+/**
+ * The Auto-pack card on the Pack page: size every item, find up to three
+ * transport-safe layouts, draw each as a thumbnail and apply the chosen one.
+ */
+
+export interface AutoPackHooks {
+  layout(): Layout;
+  /** Replace the layout's bins with these (one undo step). */
+  apply(bins: Bin[]): void;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Everything sizing and packing depend on — options go stale when it changes. */
+function packKey(layout: Layout, growth: string): string {
+  const s = layout.settings;
+  return JSON.stringify([layout.items, s.areaX, s.areaY, s.gridSpacing, s.clear, s.wallThick, s.wallBump, s.floorThick,
+    s.overallHeight, s.itemPlay, s.bedX, s.bedY, s.bedZ, growth]);
+}
+
+export class AutoPackCard {
+  private options: PackOption[] = [];
+  private key = "";
+  private growth: HTMLSelectElement;
+  private list: HTMLElement;
+  private summary: HTMLElement;
+  private runButton: HTMLButtonElement;
+
+  constructor(root: HTMLElement, private hooks: AutoPackHooks) {
+    this.growth = root.querySelector("#autopack-growth")!;
+    this.list = root.querySelector("#autopack-options")!;
+    this.summary = root.querySelector("#autopack-summary")!;
+    this.runButton = root.querySelector("#autopack-run")!;
+    this.runButton.addEventListener("click", () => this.run());
+    this.growth.addEventListener("change", () => this.run());
+  }
+
+  /** Size the items and pack them. */
+  run() {
+    const layout = this.hooks.layout();
+    const s = layout.settings;
+    const demands: Demand[] = [];
+    const broken: string[] = [];
+    for (const item of layout.items) {
+      const r = sizeItem(item, s);
+      if (r.ok) demands.push({ id: item.id, unitsX: r.unitsX, unitsY: r.unitsY });
+      else broken.push(item.name || "unnamed item");
+    }
+    const fits = (ux: number, uy: number) => fitsBed(newBin(0, 0, ux, uy), s);
+    // Longest side, in grid units, that stays under the warp-risk length (bounding box incl. ribs)
+    let maxSpan = 1;
+    while ((maxSpan + 1) * s.gridSpacing - 2 * s.clear + s.wallBump < WARP_SPAN_MM) maxSpan++;
+    const result = autoPack(s.areaX, s.areaY, demands, fits, { growth: this.growth.value as Growth, maxSpan });
+    this.options = result.options;
+    this.key = packKey(layout, this.growth.value);
+    const name = (id: string) => layout.items.find((it) => it.id === id)?.name || "unnamed item";
+    const problems = [
+      ...(broken.length ? [`Can't size: ${broken.join(", ")} (see the Items page).`] : []),
+      ...(result.unplaceable.length ? [`Doesn't fit: ${result.unplaceable.map(name).join(", ")}.`] : []),
+    ];
+    this.renderOptions(problems);
+  }
+
+  /** Called on every render: show the item count, and drop options that went stale. */
+  refresh() {
+    const layout = this.hooks.layout();
+    const n = layout.items.length;
+    this.runButton.disabled = n === 0;
+    this.runButton.textContent = this.options.length ? "Find layouts again" : "Find layouts";
+    if (this.key && this.key !== packKey(layout, this.growth.value)) {
+      this.options = [];
+      this.key = "";
+      this.list.replaceChildren();
+    }
+    if (!this.options.length && !this.list.childElementCount) {
+      this.summary.textContent = n === 0
+        ? "Add items on the Items page, then auto-pack them into transport-safe layouts."
+        : `${n} item${n === 1 ? "" : "s"} from the Items page. Every layout fills whole rows or columns.`;
+    }
+  }
+
+  private renderOptions(problems: string[]) {
+    const layout = this.hooks.layout();
+    this.summary.textContent = this.options.length
+      ? `${this.options.length} layout${this.options.length === 1 ? "" : "s"} found. Using one replaces the bins on the grid (Ctrl+Z undoes it).`
+      : "No layout fits every item — remove some items or use a bigger case.";
+    const cards = this.options.map((opt, i) => this.optionCard(opt, i, layout));
+    const notes = problems.map((p) => Object.assign(document.createElement("p"), { className: "hint bad", textContent: p }));
+    this.list.replaceChildren(...notes, ...cards);
+  }
+
+  private optionCard(opt: PackOption, i: number, layout: Layout): HTMLElement {
+    const { areaX, areaY } = layout.settings;
+    const cell = 6;
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${areaX * cell} ${areaY * cell}`);
+    svg.setAttribute("aria-hidden", "true");
+    svg.classList.add("option-thumb");
+    for (const b of opt.bins) {
+      const r = document.createElementNS(SVG_NS, "rect");
+      r.setAttribute("x", String(b.col * cell + 0.5));
+      r.setAttribute("y", String(b.row * cell + 0.5));
+      r.setAttribute("width", String(b.unitsX * cell - 1));
+      r.setAttribute("height", String(b.unitsY * cell - 1));
+      r.setAttribute("class", b.id ? (b.grownFrom ? "grown" : "fit") : "spacer");
+      svg.append(r);
+    }
+    const binCount = opt.bins.length - opt.spacers;
+    const title = `${i === 0 ? "Best · " : ""}Full ${opt.rule}`;
+    const stats = `${binCount} bin${binCount === 1 ? "" : "s"} · ${opt.spacers} spacer${opt.spacers === 1 ? "" : "s"} · ${opt.grown} grown`;
+    const use = Object.assign(document.createElement("button"), { type: "button", textContent: "Use this layout", className: i === 0 ? "primary" : "" });
+    use.addEventListener("click", () => this.use(opt));
+    const text = document.createElement("div");
+    text.className = "option-text";
+    text.append(
+      Object.assign(document.createElement("strong"), { textContent: title }),
+      Object.assign(document.createElement("span"), { className: "hint", textContent: stats }),
+      use,
+    );
+    const card = document.createElement("div");
+    card.className = "option";
+    card.append(svg, text);
+    return card;
+  }
+
+  private use(opt: PackOption) {
+    const layout = this.hooks.layout();
+    if (layout.bins.length && !confirm(`Replace the ${layout.bins.length} bin(s) on the grid with this layout? (Ctrl+Z undoes it.)`)) return;
+    const items = new Map(layout.items.map((it) => [it.id, it]));
+    const bins = opt.bins.map((p) => {
+      const bin = newBin(p.col, p.row, p.unitsX, p.unitsY);
+      const item = p.id ? items.get(p.id) : undefined;
+      if (item) {
+        bin.itemId = item.id;
+        bin.title = (item.name || "Item") + (item.qty > 1 ? ` ×${item.qty}` : "");
+      } else {
+        bin.title = "Spacer";
+      }
+      return bin;
+    });
+    this.hooks.apply(bins);
+  }
+}

@@ -1,4 +1,5 @@
 import type { ParamValues } from "./vendor/casefinity/models/index.ts";
+import type { Item } from "./sizing.ts";
 
 /**
  * Planner state and its mapping onto casefinity's model parameters.
@@ -40,6 +41,8 @@ export interface Settings {
    * of case length / width given up to the border on each axis. */
   sideBorderUnits: number;
   frontBorderUnits: number;
+  /** Free space added around items when sizing their bins, mm. */
+  itemPlay: number;
   bedX: number;
   bedY: number;
   bedZ: number;
@@ -61,12 +64,15 @@ export interface Bin {
   /** Double-sided only: casefinity's BOTTOM_FILLET_FACTOR. Rectangular bins
    * may need it raised so the hopper doesn't print as an overhang. */
   bottomFillet: number;
+  /** The item this bin was sized for (Items page), if any. */
+  itemId: string | null;
 }
 
 export interface Layout {
   version: 1;
   settings: Settings;
   bins: Bin[];
+  items: Item[];
 }
 
 /** Defaults follow casefinity.net's shipped parameter defaults. The area is its
@@ -87,6 +93,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pullTabHeight: 5,
   sideBorderUnits: 4,
   frontBorderUnits: 3,
+  itemPlay: 1,
   bedX: 256,
   bedY: 256,
   bedZ: 256,
@@ -119,6 +126,7 @@ export function newBin(col: number, row: number, unitsX: number, unitsY: number)
     height: null,
     lidLabel: "",
     bottomFillet: DEFAULT_BOTTOM_FILLET,
+    itemId: null,
   };
 }
 

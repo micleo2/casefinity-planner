@@ -7,14 +7,63 @@
   </head>
   <body>
     <header>
-      <h1>Casefinity Planner</h1>
-      <p class="sub">
-        Draw, move and resize bins — export print-ready STL/STEP. No rotation: bins are handed
-        (−X/+Y ribs, +X/−Y sockets).
-      </p>
+      <div>
+        <h1>Casefinity Planner</h1>
+        <p class="sub">
+          List what goes in the case, auto-pack it, export print-ready STL/STEP. Bins are handed
+          (−X/+Y ribs, +X/−Y sockets).
+        </p>
+      </div>
+      <nav class="steps" aria-label="Steps">
+        <a href="#items" id="step-items">1 Items</a>
+        <a href="#pack" id="step-pack">2 Pack</a>
+      </nav>
     </header>
-    <div id="app">
+
+    <div id="items-page" class="items-page" hidden>
+      <section class="card items-card">
+        <div class="items-head">
+          <h2>What goes in the case</h2>
+          <label class="inline">Play around items [mm]<input id="itemPlay" type="number" min="0" max="10" step="0.5" /></label>
+        </div>
+        <div class="table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr><th>Item</th><th>Shape</th><th>Size [mm]</th><th>Qty</th><th>Orientation</th><th>Bin</th><th><span class="sr-only">Remove</span></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="buttons">
+          <button id="add-box" type="button">+ Box</button>
+          <button id="add-cylinder" type="button">+ Cylinder</button>
+        </div>
+      </section>
+      <aside class="items-aside">
+        <section class="card" id="item-why"></section>
+        <section class="card">
+          <h2>Totals</h2>
+          <div id="items-totals"></div>
+          <button id="items-autopack" type="button" class="primary">Auto-pack →</button>
+        </section>
+      </aside>
+    </div>
+
+    <div id="app" class="pack-page">
       <aside id="sidebar">
+        <section class="card" id="autopack-card">
+          <h2>Auto-pack</h2>
+          <p class="hint" id="autopack-summary"></p>
+          <label>Fill spare grid units with
+            <select id="autopack-growth">
+              <option value="grow">Grown bins, then spacers</option>
+              <option value="spacers">Spacer bins only</option>
+            </select>
+          </label>
+          <button id="autopack-run" type="button" class="primary">Find layouts</button>
+          <div id="autopack-options" class="options"></div>
+        </section>
+
         <section class="card">
           <h2>Area</h2>
           <div class="row2">
@@ -121,10 +170,21 @@
         </p>
         <section class="card preview-card">
           <div class="preview-head">
-            <h2>Preview</h2>
-            <span class="hint" id="preview-status">Select a bin to preview it.</span>
+            <div class="seg" role="group" aria-label="Preview">
+              <button type="button" id="view-case" aria-pressed="true">Whole case</button>
+              <button type="button" id="view-bin" aria-pressed="false">Selected bin</button>
+            </div>
+            <span class="hint" id="preview-status"></span>
           </div>
-          <div id="preview"></div>
+          <div id="case-view"></div>
+          <div id="preview" hidden></div>
+          <div class="table-wrap" id="fill-wrap">
+            <table class="fill-table">
+              <thead><tr><th>Bin</th><th>Items / space</th><th>Fill</th><th>Depth used</th></tr></thead>
+              <tbody id="fill-body"></tbody>
+            </table>
+            <p class="hint">Fill = item volume ÷ space inside the bin. Depth used = tallest item ÷ inside height.</p>
+          </div>
         </section>
       </main>
     </div>

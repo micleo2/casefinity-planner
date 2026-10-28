@@ -17,6 +17,10 @@ import type { Bin, BinType, Layout, Settings } from "./bins.ts";
 import { canPlace, emptyLayout, fitsBed, parseLayout, runChecks, serializeLayout } from "./layout.ts";
 import { GridEditor } from "./grid.ts";
 import { exportZip, groupParts } from "./export.ts";
+import { ItemsPage } from "./itemsPage.ts";
+import { AutoPackCard } from "./autopack.ts";
+import { insideHeight, insideVolume, placeInBin, sizeItem, solidVolume } from "./sizing.ts";
+import type { CaseView } from "./caseView.ts";
 
 const cad = wrap<CadWorkerApi>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }));
 
@@ -66,6 +70,7 @@ function restore(index: number) {
   if (!selected()) selectedId = null;
   syncSettingInputs();
   syncBinInputs();
+  itemsPage.rebuild();
   update();
 }
 
@@ -80,10 +85,10 @@ function select(id: string | null) {
 const settingKeys: (keyof Settings)[] = [
   "areaX", "areaY", "gridSpacing", "overallHeight", "wallThick", "clear",
   "floorThick", "ribWidth", "wallBump", "draftAngle", "pullTabHeight",
-  "caseLength", "caseWidth", "sideBorderUnits", "frontBorderUnits", "bedX", "bedY", "bedZ",
+  "caseLength", "caseWidth", "sideBorderUnits", "frontBorderUnits", "bedX", "bedY", "bedZ", "itemPlay",
 ];
 const integerSettings = new Set<keyof Settings>(["areaX", "areaY", "sideBorderUnits", "frontBorderUnits"]);
-const zeroAllowed = new Set<keyof Settings>(["draftAngle", "sideBorderUnits", "frontBorderUnits"]);
+const zeroAllowed = new Set<keyof Settings>(["draftAngle", "sideBorderUnits", "frontBorderUnits", "itemPlay"]);
 /** Settings that feed casefinity's perimeter formula: editing one recomputes the area. */
 const caseKeys = new Set<keyof Settings>(["caseLength", "caseWidth", "sideBorderUnits", "frontBorderUnits"]);
 
@@ -292,7 +297,7 @@ const grid = new GridEditor($("grid") as unknown as SVGSVGElement, {
 
 document.addEventListener("keydown", (e) => {
   const t = e.target as HTMLElement;
-  if (t.closest("input, select, textarea")) return;
+  if (t.closest("input, select, textarea") || page !== "pack") return;
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === "z") {
     e.preventDefault();
@@ -377,7 +382,14 @@ function render() {
   exportBtn.disabled = !kernelReady || exporting || layout.bins.length === 0;
 
   grid.render();
-  schedulePreview();
+  itemsPage.refresh();
+  autoPackCard.refresh();
+  if (view === "case") {
+    scheduleCase();
+    renderFillTable();
+  } else {
+    schedulePreview();
+  }
 }
 
 // ---- export, save, load ----------------------------------------------------------
@@ -432,6 +444,7 @@ loadFile.addEventListener("change", async () => {
     selectedId = null;
     syncSettingInputs();
     syncBinInputs();
+    itemsPage.rebuild();
     update(true);
     status.textContent = `Loaded ${file.name} (${layout.bins.length} bins).`;
   } catch (err) {
@@ -472,6 +485,7 @@ function getViewer(): Promise<ViewerInstance | null> {
 }
 
 function schedulePreview() {
+  if (view !== "bin") return;
   const bin = selected();
   const key = bin ? JSON.stringify([modelIdFor(bin.type), binParams(bin, layout.settings)]) : "";
   if (key === lastPreviewKey) return;
@@ -507,10 +521,139 @@ function schedulePreview() {
   }, 350);
 }
 
+// ---- items page, auto-pack, pages --------------------------------------------------
+
+const itemsPage = new ItemsPage($("items-page"), {
+  layout: () => layout,
+  changed: (commit) => update(commit),
+  autoPack() {
+    location.hash = "#pack";
+    showPage();
+    autoPackCard.run();
+  },
+});
+
+const autoPackCard = new AutoPackCard($("autopack-card"), {
+  layout: () => layout,
+  apply(bins) {
+    layout.bins = bins;
+    selectedId = null;
+    syncBinInputs();
+    setView("case");
+    update(true);
+  },
+});
+
+type Page = "items" | "pack";
+let page: Page = "pack";
+
+/** #items or #pack; with no hash, start on Items until there are bins to show. */
+function showPage() {
+  const hash = location.hash.slice(1);
+  page = hash === "items" || hash === "pack" ? hash : layout.bins.length || !layout.items.length ? "pack" : "items";
+  $("items-page").hidden = page !== "items";
+  $("app").hidden = page !== "pack";
+  for (const p of ["items", "pack"] as Page[]) {
+    const link = $(`step-${p}`);
+    if (p === page) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  if (page === "pack") render();
+}
+window.addEventListener("hashchange", showPage);
+
+// ---- preview: whole case or the selected bin -------------------------------------
+
+type View = "case" | "bin";
+let view: View = "case";
+
+function setView(next: View) {
+  view = next;
+  $("view-case").setAttribute("aria-pressed", String(next === "case"));
+  $("view-bin").setAttribute("aria-pressed", String(next === "bin"));
+  $("case-view").hidden = next !== "case";
+  $("fill-wrap").hidden = next !== "case";
+  $("preview").hidden = next !== "bin";
+  lastPreviewKey = "";
+}
+$("view-case").addEventListener("click", () => { setView("case"); render(); });
+$("view-bin").addEventListener("click", () => { setView("bin"); render(); });
+
+let caseView: Promise<CaseView | null> | undefined;
+let caseFrame = 0;
+
+function scheduleCase() {
+  cancelAnimationFrame(caseFrame);
+  caseFrame = requestAnimationFrame(async () => {
+    caseView ??= import("./caseView.ts").then(({ CaseView }) => {
+      try {
+        return new CaseView($("case-view"));
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    });
+    const v = await caseView;
+    if (!v) {
+      previewStatus.textContent = "3D preview unavailable (no WebGL).";
+      return;
+    }
+    v.update(layout, selectedId);
+    previewStatus.textContent = layout.bins.length ? "Drag to orbit · scroll to zoom" : "No bins yet.";
+  });
+}
+
+/** How much of each item bin its items fill, by volume and by depth. */
+function renderFillTable() {
+  const s = layout.settings;
+  const items = new Map(layout.items.map((it) => [it.id, it]));
+  const rows: HTMLTableRowElement[] = [];
+  for (const bin of layout.bins) {
+    const item = bin.itemId ? items.get(bin.itemId) : undefined;
+    if (!item) continue;
+    const sizing = sizeItem(item, s);
+    const solids = sizing.ok ? placeInBin(item, sizing, bin, s) : null;
+    const tr = document.createElement("tr");
+    tr.className = bin.id === selectedId ? "selected" : "";
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "linklike";
+    name.textContent = `${bin.title || item.name || "Item"} · ${bin.unitsX}×${bin.unitsY}`;
+    name.addEventListener("click", () => select(bin.id));
+    const cells: (string | Node)[] = [name];
+    if (!solids || !sizing.ok) {
+      cells.push("doesn't fit", "—", "—");
+    } else {
+      const vol = solids.reduce((a, so) => a + solidVolume(so), 0);
+      const space = insideVolume(bin, s);
+      const pct = Math.round((vol / space) * 100);
+      const bar = document.createElement("span");
+      bar.className = "fill-bar";
+      const inner = document.createElement("span");
+      inner.style.width = `${Math.min(100, pct)}%`;
+      bar.append(inner);
+      const fill = document.createDocumentFragment();
+      fill.append(bar, `${pct} %`);
+      const depth = Math.round((sizing.pose.z / insideHeight(s, bin.height ?? s.overallHeight)) * 100);
+      cells.push(`${(vol / 1e6).toFixed(2)} / ${(space / 1e6).toFixed(2)} L`, fill, `${depth} %`);
+    }
+    for (const c of cells) {
+      const td = document.createElement("td");
+      td.append(c);
+      tr.append(td);
+    }
+    rows.push(tr);
+  }
+  $("fill-body").replaceChildren(...rows);
+  $("fill-wrap").hidden = rows.length === 0;
+}
+
 // ---- start -----------------------------------------------------------------------
 
 syncSettingInputs();
 syncBinInputs();
+itemsPage.rebuild();
+showPage();
 render();
 cad.ready().then(
   () => {

@@ -60,5 +60,29 @@ for (const c of cases) {
   for (const { shape } of parts) shape.delete();
 }
 
+// The free space sizing.ts promises must really be empty in casefinity's bin,
+// and 0.4 mm more in any direction must hit a wall, boss or the floor.
+{
+  const { insideWidth, insideHeight } = await import("../src/sizing.ts");
+  for (const [ux, uy, wall] of [[3, 5, 1.2], [2, 4, 3]]) {
+    const ss = { ...s, wallThick: wall };
+    const bin = { ...newBin(0, 0, ux, uy), pullTab: false };
+    const [{ shape: body }] = buildParts(modelIdFor("no-lid"), binParams(bin, ss));
+    const boss = ss.wallThick < 2 * ss.wallBump ? ss.wallBump : 0;
+    const ix = insideWidth(ux, ss), iy = insideWidth(uy, ss), iz = insideHeight(ss);
+    const probe = (gx, gy, gz) =>
+      replicad.drawRectangle(ix + gx, iy + gy).translate(-boss / 2, boss / 2)
+        .sketchOnPlane("XY", ss.floorThick - gz).extrude(iz + gz - 0.01);
+    const overlap = (p) => replicad.measureVolume(body.intersect(p));
+    const free = overlap(probe(-0.02, -0.02, -0.01));
+    const label = `${ux}×${uy} bin, ${wall} mm walls`;
+    const ok = free < 0.01 && overlap(probe(0.4, -0.02, -0.01)) > 0.01 &&
+      overlap(probe(-0.02, 0.4, -0.01)) > 0.01 && overlap(probe(-0.02, -0.02, 0.2)) > 0.01;
+    if (!ok) failures++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${label}: inside ${ix.toFixed(1)} × ${iy.toFixed(1)} × ${iz} mm is free (overlap ${free.toFixed(3)} mm³) and tight`);
+    body.delete();
+  }
+}
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall checks passed");
 process.exit(failures ? 1 : 0);

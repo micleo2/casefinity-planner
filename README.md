@@ -17,6 +17,16 @@ npm run dev        # http://localhost:5173
 npm run build      # static site in dist/ — host anywhere
 ```
 
+- **1 Items** — list what goes in the case as boxes (L × W × H) or cylinders (⌀ × H), with a quantity. Each
+  gets the smallest bin it fits, standing or lying (or *as entered* / *standing* / *lying* if you choose), with
+  the reasoning shown: e.g. “70 + 1 → 6 grid units give 85.9 ✓ (5 give 70.9 ✗)”. Inside sizes come from
+  casefinity's geometry (`15n − 0.2 clearance − 2 × wall − socket bosses`, height − floor) and are checked
+  against the real CAD model in `npm run smoke`. *Play around items* (default 1 mm) is added to each footprint.
+- **2 Pack → Auto-pack** — finds up to three transport-safe layouts (full columns or full rows), filling spare
+  grid units by growing bins or with spacer bins. Growth never makes a bin longer than the warp-risk length
+  unless the item's own bin already is. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
+- **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D, plus a table of how
+  full each bin is by volume and by depth. *Selected bin* shows the real CAD model of one bin.
 - **Area** — the perimeter cavity in grid units (15 mm squares). *Case preset* starts on `--Custom--` with casefinity's default
   perimeter (350 × 250 mm → 19 × 13); pick Apache 3800 (→ 21 × 14) or Apache 4800 (→ 26 × 18), or type your case's
   inside length/width. Grid units follow casefinity's perimeter formula `floor(mm ÷ P) − border units`; the border
@@ -40,6 +50,9 @@ npm run build      # static site in dist/ — host anywhere
 src/
   bins.ts      planner state + mapping onto casefinity parameters (unitsX → casefinity's widthModules, …)
   layout.ts    placement rules, checks, layout (de)serialization — pure, tested in Node
+  sizing.ts    item → smallest bin, and where items sit inside a bin — pure
+  pack.ts      auto-pack into full columns / rows — pure
+  itemsPage.ts, autopack.ts, caseView.ts   Items page, Auto-pack card, whole-case 3D view
   grid.ts      SVG grid editor
   export.ts    batch build + ZIP, with a per-part cache
   step.ts      STEP writer without replicad 0.23.1's double free (see below)
@@ -48,6 +61,7 @@ src/
   vendor/casefinity/   upstream models, STL/3MF writers, 3D viewer — do not edit
 scripts/
   layout-test.mjs  unit tests for layout.ts / grouping
+  pack-test.mjs    unit tests for sizing.ts and pack.ts
   smoke.mjs        builds each bin type with the real kernel and checks dimensions against the spec
   batch-test.mjs   builds every part of reference-layout.json in one kernel, with GC between parts
   e2e.mjs          headless Chromium: draws the reference layout, edits, exports, verifies the ZIP
