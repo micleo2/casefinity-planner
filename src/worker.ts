@@ -5,6 +5,8 @@ import { expose } from "comlink";
 import type { ParamValues } from "./vendor/casefinity/models/index.ts";
 import { buildParts, stlBlob, threeMfBlob } from "./vendor/casefinity/exports.ts";
 import { stepBytes } from "./step.ts";
+import { buildPlate } from "./plateExport.ts";
+import type { PlateJob } from "./plateExport.ts";
 
 export type ExportFormat = "stl" | "step" | "3mf";
 
@@ -37,6 +39,13 @@ const api = {
     }));
     for (const { shape } of parts) shape.delete();
     return meshes;
+  },
+
+  /** One print plate as a 3MF, plus a 3MF of lids for each bin that has them. */
+  async exportPlate(jobs: PlateJob[], bedY: number, title: string) {
+    await init();
+    const { plate, extras } = buildPlate(jobs, bedY, title);
+    return { plate, extras };
   },
 
   /** Build one bin once and serialize it to each requested format. */

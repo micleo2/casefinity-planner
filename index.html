@@ -17,6 +17,7 @@
       <nav class="steps" aria-label="Steps">
         <a href="#items" id="step-items">1 Items</a>
         <a href="#pack" id="step-pack">2 Pack</a>
+        <a href="#print" id="step-print">3 Print</a>
       </nav>
     </header>
 
@@ -45,6 +46,29 @@
           <h2>Totals</h2>
           <div id="items-totals"></div>
           <button id="items-autopack" type="button" class="primary">Auto-pack →</button>
+        </section>
+      </aside>
+    </div>
+
+    <div id="print-page" class="print-page" hidden>
+      <section class="card plates-card">
+        <div class="items-head">
+          <h2 id="plates-title">Plates</h2>
+          <span class="hint" id="plates-note"></span>
+        </div>
+        <div id="plates" class="plates"></div>
+        <div class="buttons">
+          <button id="export-plates" type="button" class="primary" disabled>Export ZIP · one 3MF per plate</button>
+          <button id="print-map" type="button">Print case map</button>
+        </div>
+        <p class="hint" id="plates-status"></p>
+      </section>
+      <aside class="print-aside">
+        <section class="card" id="case-map-card">
+          <h2>Case map</h2>
+          <p class="hint">Tape it inside the lid. Top = back of the case.</p>
+          <svg id="case-map" role="img" aria-label="Case map with numbered bins"></svg>
+          <ol id="case-legend" class="case-legend"></ol>
         </section>
       </aside>
     </div>

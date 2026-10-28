@@ -49,6 +49,34 @@ for (const g of groupParts(layout)) {
     log(`FAIL ${g.stem}: ${e?.message ?? e}`);
   }
 }
+// A print plate: every body lands exactly where the plan put it, on the bed, z = 0.
+{
+  const { planPlates } = await import("../src/plates.ts");
+  const { buildPlate } = await import("../src/plateExport.ts");
+  const { binParams, modelIdFor, fileStem } = await import("../src/bins.ts");
+  const s = layout.settings;
+  const plan = planPlates(layout.bins, s);
+  for (const [pi, plate] of plan.plates.entries()) {
+  const jobs = plate.parts.map((p) => {
+    const bin = layout.bins.find((b) => b.id === p.binId);
+    return { modelId: modelIdFor(bin.type), params: binParams(bin, s), name: `${p.num}-${fileStem(bin)}`, x: p.x, y: p.y, turned: p.turned };
+  });
+  const built = buildPlate(jobs, s.bedY, `plate ${pi + 1}`);
+  let ok = built.plate.length > 1000;
+  plate.parts.forEach((p, i) => {
+    const [x0, y0, z0, x1, y1] = built.bounds[i];
+    const want = [p.x, s.bedY - p.y - p.h, p.x + p.w, s.bedY - p.y];
+    const err = Math.max(...[x0, y0, x1, y1].map((v, k) => Math.abs(v - want[k])));
+    if (err > 0.05 || Math.abs(z0) > 1e-6) { ok = false; log(`FAIL plate part ${p.num}: off by ${err.toFixed(3)} mm`); }
+  });
+  const lids = layout.bins.filter((b) => plate.parts.some((p) => p.binId === b.id) && b.type !== "no-lid" && b.type !== "solid").length;
+  if (built.extras.length !== lids) { ok = false; log(`FAIL expected ${lids} lid files, got ${built.extras.length}`); }
+  if (!ok) failures++;
+  log(`${ok ? "ok  " : "FAIL"} plate ${pi + 1} of ${plan.plates.length}: ${plate.parts.length} bodies placed as planned, ${built.extras.length} lid file(s), 3MF ${(built.plate.length / 1024).toFixed(0)} KiB`);
+  await collect();
+  }
+}
+
 await collect();
 log(failures ? `${failures} failure(s)` : `all parts built in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
 process.exit(failures ? 1 : 0);

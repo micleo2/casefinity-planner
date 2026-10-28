@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --test scripts/layout-test.mjs scripts/pack-test.mjs && node scripts/smoke.mjs && node --expose-gc scripts/batch-test.mjs",
+    "test": "node --test scripts/layout-test.mjs scripts/pack-test.mjs scripts/plates-test.mjs && node scripts/smoke.mjs && node --expose-gc scripts/batch-test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "node scripts/e2e.mjs"
   },

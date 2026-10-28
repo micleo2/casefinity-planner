@@ -117,11 +117,21 @@ export function runChecks(layout: Layout): Check[] {
     warn(`Warp risk (long side ≥ ${WARP_SPAN_MM} mm): ${warpy.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}. Use a brim or split the bin.`);
   }
 
-  const lopsided = layout.bins.filter((b) =>
-    b.type === "double-sided" && b.unitsX !== b.unitsY && b.bottomFillet <= DEFAULT_BOTTOM_FILLET);
-  if (lopsided.length) {
+  // casefinity sizes the double-sided hopper from the bin's width only, so a bin
+  // wider than deep gets a hopper poking out through its side walls
+  // (verified: a 3×2 body measures 42.4 mm deep against 31.3 mm walls).
+  const wide = layout.bins.filter((b) => b.type === "double-sided" && b.unitsX > b.unitsY);
+  if (wide.length) {
+    fail(
+      `Double-sided bin(s) ${wide.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")} are wider than deep, which casefinity's ` +
+      "double-sided model can't make: the hopper sticks out through the side walls. Make them deeper than wide (e.g. 2×3) or use another type.",
+    );
+  }
+  const deep = layout.bins.filter((b) =>
+    b.type === "double-sided" && b.unitsY > b.unitsX && b.bottomFillet <= DEFAULT_BOTTOM_FILLET);
+  if (deep.length) {
     warn(
-      `Rectangular double-sided bin(s) ${lopsided.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}: ` +
+      `Rectangular double-sided bin(s) ${deep.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}: ` +
       "check the hopper in the preview and raise the fillet inset if it overhangs (the guide used 4.5 for 4×8).",
     );
   }

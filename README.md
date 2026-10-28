@@ -27,6 +27,9 @@ npm run build      # static site in dist/ — host anywhere
   unless the item's own bin already is. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D, plus a table of how
   full each bin is by volume and by depth. *Selected bin* shows the real CAD model of one bin.
+- **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), numbered to
+  match a **case map** you can print and tape inside the lid. *Export ZIP* gives one 3MF per plate with every
+  body in place, a 3MF of lids for each bin that has them, the case map as SVG, and `layout.json`.
 - **Area** — the perimeter cavity in grid units (15 mm squares). *Case preset* starts on `--Custom--` with casefinity's default
   perimeter (350 × 250 mm → 19 × 13); pick Apache 3800 (→ 21 × 14) or Apache 4800 (→ 26 × 18), or type your case's
   inside length/width. Grid units follow casefinity's perimeter formula `floor(mm ÷ P) − border units`; the border
@@ -52,7 +55,9 @@ src/
   layout.ts    placement rules, checks, layout (de)serialization — pure, tested in Node
   sizing.ts    item → smallest bin, and where items sit inside a bin — pure
   pack.ts      auto-pack into full columns / rows — pure
-  itemsPage.ts, autopack.ts, caseView.ts   Items page, Auto-pack card, whole-case 3D view
+  plates.ts    print plan: case-map numbers, bins → bed plates — pure
+  plateExport.ts   one plate's bodies placed on the bed, as 3MF (worker and tests share it)
+  itemsPage.ts, autopack.ts, caseView.ts, printPage.ts   the Items page, Auto-pack card, whole-case 3D view, Print page
   grid.ts      SVG grid editor
   export.ts    batch build + ZIP, with a per-part cache
   step.ts      STEP writer without replicad 0.23.1's double free (see below)
@@ -62,8 +67,10 @@ src/
 scripts/
   layout-test.mjs  unit tests for layout.ts / grouping
   pack-test.mjs    unit tests for sizing.ts and pack.ts
+  plates-test.mjs  unit tests for plates.ts
   smoke.mjs        builds each bin type with the real kernel and checks dimensions against the spec
-  batch-test.mjs   builds every part of reference-layout.json in one kernel, with GC between parts
+  batch-test.mjs   builds every part of reference-layout.json in one kernel, with GC between parts, and every
+                   print plate, checking each body lands where the plan put it
   e2e.mjs          headless Chromium: draws the reference layout, edits, exports, verifies the ZIP
 ```
 
@@ -78,3 +85,9 @@ replicad 0.23.1's `exportSTEP` registers its `XSControl_WorkSession` with the GC
 ref-counted Handle, so it gets freed twice. A single export usually survives; a batch export crashes with
 “memory access out of bounds” once the GC runs. `src/step.ts` is the same writer with the session owned by its
 Handle only. `node --expose-gc scripts/batch-test.mjs --upstream-step` reproduces the crash.
+
+## Note: double-sided bins wider than deep
+
+casefinity sizes the double-sided hopper from the bin's width only (`ih = iw / 2` in `bin-double-sided.ts`), so a
+double-sided bin wider than deep (e.g. 3 × 2) gets a hopper that sticks out through its side walls — its body
+measures 42.4 mm deep against 31.3 mm walls. The Checks panel fails such bins; make them deeper than wide.

@@ -19,6 +19,7 @@ import { GridEditor } from "./grid.ts";
 import { exportZip, groupParts } from "./export.ts";
 import { ItemsPage } from "./itemsPage.ts";
 import { AutoPackCard } from "./autopack.ts";
+import { PrintPage } from "./printPage.ts";
 import { insideHeight, insideVolume, placeInBin, sizeItem, solidVolume } from "./sizing.ts";
 import type { CaseView } from "./caseView.ts";
 
@@ -384,6 +385,7 @@ function render() {
   grid.render();
   itemsPage.refresh();
   autoPackCard.refresh();
+  if (page === "print") printPage.render();
   if (view === "case") {
     scheduleCase();
     renderFillTable();
@@ -544,21 +546,30 @@ const autoPackCard = new AutoPackCard($("autopack-card"), {
   },
 });
 
-type Page = "items" | "pack";
+const printPage = new PrintPage($("print-page"), {
+  layout: () => layout,
+  cad,
+  kernelReady: () => kernelReady,
+  download,
+});
+
+const PAGES = ["items", "pack", "print"] as const;
+type Page = (typeof PAGES)[number];
 let page: Page = "pack";
 
-/** #items or #pack; with no hash, start on Items until there are bins to show. */
+/** #items, #pack or #print; with no hash, start on Items until there are bins to show. */
 function showPage() {
-  const hash = location.hash.slice(1);
-  page = hash === "items" || hash === "pack" ? hash : layout.bins.length || !layout.items.length ? "pack" : "items";
+  const hash = location.hash.slice(1) as Page;
+  page = PAGES.includes(hash) ? hash : layout.bins.length || !layout.items.length ? "pack" : "items";
   $("items-page").hidden = page !== "items";
   $("app").hidden = page !== "pack";
-  for (const p of ["items", "pack"] as Page[]) {
+  $("print-page").hidden = page !== "print";
+  for (const p of PAGES) {
     const link = $(`step-${p}`);
     if (p === page) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
-  if (page === "pack") render();
+  render();
 }
 window.addEventListener("hashchange", showPage);
 
@@ -660,6 +671,7 @@ cad.ready().then(
     kernelReady = true;
     status.textContent = "CAD kernel ready.";
     render();
+    if (page === "print") printPage.render();
   },
   (err) => { status.textContent = `CAD kernel failed to load: ${err}`; },
 );

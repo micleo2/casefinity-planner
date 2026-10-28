@@ -143,3 +143,14 @@ test("layouts saved before the grid-unit rename still load", () => {
   assert.equal(old.settings.sideBorderUnits, 5);
   assert.equal(old.settings.areaX, 21);
 });
+
+test("double-sided bins wider than deep fail; deeper than wide only warn", () => {
+  const l = layoutWith(10, 10, [[0, 0, 3, 2], [3, 0, 2, 5], [5, 0, 4, 4]]);
+  for (const b of l.bins) b.type = "double-sided";
+  const checks = runChecks(l);
+  const fail = checks.find((c) => c.level === "fail" && c.text.startsWith("Double-sided"));
+  assert.ok(fail, "3×2 fails");
+  assert.match(fail.text, /3×2/);
+  assert.doesNotMatch(fail.text, /2×5|4×4/);
+  assert.ok(checks.some((c) => c.level === "warn" && c.text.includes("2×5")));
+});
