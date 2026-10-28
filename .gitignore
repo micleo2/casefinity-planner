@@ -1,0 +1,6 @@
+node_modules
+dist
+
+# local reference material, not ours to redistribute
+Gridfinity For Hardcases Guide*.html
+screenshot-ref.jpg

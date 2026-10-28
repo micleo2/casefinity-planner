@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Casefinity Planner</title>
+  </head>
+  <body>
+    <header>
+      <h1>Casefinity Planner</h1>
+      <p class="sub">
+        Draw, move and resize bins — export print-ready STL/STEP. No rotation: bins are handed
+        (−X/+Y ribs, +X/−Y sockets).
+      </p>
+    </header>
+    <div id="app">
+      <aside id="sidebar">
+        <section class="card">
+          <h2>Area</h2>
+          <div class="row2">
+            <label>Modules X<input id="areaX" type="number" min="1" max="60" step="1" /></label>
+            <label>Modules Y<input id="areaY" type="number" min="1" max="60" step="1" /></label>
+          </div>
+          <label>or from your case (casefinity perimeter)<select id="case-preset"></select></label>
+          <div class="row3">
+            <label>Case length [mm]<input id="mmX" type="number" min="0" step="0.001" placeholder="inside" /></label>
+            <label>Case width [mm]<input id="mmY" type="number" min="0" step="0.001" placeholder="inside" /></label>
+            <button id="mm-to-modules" type="button" class="ghost">→ Modules</button>
+          </div>
+          <div class="row2">
+            <label>Side border modules<input id="sideBorderModules" type="number" min="0" max="10" step="1" /></label>
+            <label>Front border modules<input id="frontBorderModules" type="number" min="0" max="10" step="1" /></label>
+          </div>
+          <p class="hint" id="case-hint">
+            Inside dimensions of the case. Border modules must match the perimeter's “Side / Front border bins”
+            on casefinity.net (defaults 4 / 3).
+          </p>
+          <p class="hint" id="area-hint"></p>
+          <div class="row3">
+            <label>Pitch P [mm]<input id="gridSpacing" type="number" min="10" max="50" step="0.5" /></label>
+            <label>Bin height [mm]<input id="overallHeight" type="number" min="20" max="300" step="1" /></label>
+            <label>Wall [mm]<input id="wallThick" type="number" min="0.8" max="3" step="0.1" /></label>
+          </div>
+          <label>Clearance c [mm]<input id="clear" type="number" min="0" max="0.5" step="0.05" /></label>
+          <p class="hint" id="clear-hint"></p>
+          <details>
+            <summary>Advanced (casefinity defaults)</summary>
+            <div class="row3">
+              <label>Floor [mm]<input id="floorThick" type="number" min="0.6" max="4" step="0.2" /></label>
+              <label>Rib width [mm]<input id="ribWidth" type="number" min="0.6" max="4.5" step="0.1" /></label>
+              <label>Rib depth [mm]<input id="wallBump" type="number" min="0.5" max="3" step="0.1" /></label>
+            </div>
+            <div class="row3">
+              <label>Rib draft [°]<input id="draftAngle" type="number" min="0" max="5" step="0.5" /></label>
+              <label>Pull tab [mm]<input id="pullTabHeight" type="number" min="0.5" max="15" step="0.5" /></label>
+              <button id="reset-advanced" type="button" class="ghost">Reset</button>
+            </div>
+            <p class="hint">
+              These must match whatever your perimeter and other bins were made with. Keep the
+              defaults for parts from casefinity.net.
+            </p>
+          </details>
+          <h2>Print bed</h2>
+          <div class="row3">
+            <label>X [mm]<input id="bedX" type="number" min="1" /></label>
+            <label>Y [mm]<input id="bedY" type="number" min="1" /></label>
+            <label>Z [mm]<input id="bedZ" type="number" min="1" /></label>
+          </div>
+        </section>
+
+        <section class="card" id="bin-card">
+          <div id="bin-empty">
+            <h2>Bin</h2>
+            <p class="hint">No bin selected — drag across empty cells in the grid to draw one, or click a bin to edit it.</p>
+          </div>
+          <div id="bin-form" hidden>
+            <h2 id="bin-heading">Bin</h2>
+            <label>Title (for labelling and file names)<input id="bin-title" type="text" maxlength="40" placeholder="e.g. Small parts" /></label>
+            <p class="hint" id="bin-dims"></p>
+            <div class="row2">
+              <label>Modules X<input id="bin-mx" type="number" min="1" step="1" /></label>
+              <label>Modules Y<input id="bin-my" type="number" min="1" step="1" /></label>
+            </div>
+            <p class="hint bad" id="bin-error" hidden></p>
+            <div class="row2">
+              <label>Type<select id="bin-type"></select></label>
+              <label>Height [mm]<input id="bin-height" type="number" min="20" max="300" step="1" /></label>
+            </div>
+            <label id="lid-label-row">Lid label<input id="bin-lid-label" type="text" maxlength="20" placeholder="defaults to title" /></label>
+            <label id="fillet-row">Hopper fillet inset [mm]<input id="bin-fillet" type="number" min="0" max="15" step="0.1" /></label>
+            <label class="check"><input id="bin-pulltab" type="checkbox" /> Pull tab</label>
+            <p class="hint" id="bin-tab-hint"></p>
+            <div class="buttons">
+              <button id="bin-rotate" type="button">Rotate 90° (R)</button>
+              <button id="bin-delete" type="button" class="danger">Delete (Del)</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Checks</h2>
+          <div id="checks"></div>
+        </section>
+
+        <section class="card">
+          <h2>Export</h2>
+          <label class="check"><input id="export-step" type="checkbox" checked /> STEP in addition to STL</label>
+          <label class="check"><input id="export-3mf" type="checkbox" /> 3MF in addition to STL</label>
+          <button id="export" type="button" class="primary" disabled>Export as ZIP</button>
+          <p class="hint" id="status">Loading CAD kernel…</p>
+          <div class="buttons">
+            <button id="save-layout" type="button">Save layout</button>
+            <button id="load-layout" type="button">Load layout</button>
+            <button id="clear-layout" type="button" class="ghost">Clear</button>
+          </div>
+          <input id="load-file" type="file" accept=".json,application/json" hidden />
+        </section>
+      </aside>
+
+      <main>
+        <section class="card grid-card"><svg id="grid" role="application" aria-label="Bin layout grid"></svg></section>
+        <p class="legend">
+          <span class="tab-swatch"></span> Pull tab · ◓ Lid · ◒ Double-sided · ■ Solid · ⚠ Warp risk · ⛔ Doesn't fit the print bed
+          <br />Top of the grid is the back (+Y) of the case. Keys: R rotate · Del delete · arrows move · Esc deselect · Ctrl+Z / Ctrl+Shift+Z undo / redo
+        </p>
+        <section class="card preview-card">
+          <div class="preview-head">
+            <h2>Preview</h2>
+            <span class="hint" id="preview-status">Select a bin to preview it.</span>
+          </div>
+          <div id="preview"></div>
+        </section>
+      </main>
+    </div>
+    <footer>
+      Geometry by <a href="https://casefinity.net/">Casefinity</a> (Chris Agocs, MIT), after the
+      <a href="https://www.patreon.com/UnemployedArchitect/posts/gridfinity-for-162320687">Gridfinity for Hardcases</a>
+      system by Unemployed Architect. Everything runs in your browser.
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
