@@ -4,6 +4,7 @@
 // rotate / delete / undo, exports the ZIP and checks its contents.
 //
 // Usage: npm run build && npm run e2e   (CHROME=/path/to/chromium to override;
+//        BASE_PATH=/sub/ for both commands to test a subpath build;
 //        E2E_OUT=dir to keep the screenshot and downloads)
 import { spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -15,6 +16,8 @@ import { unzipSync, strFromU8 } from "fflate";
 const out = process.env.E2E_OUT ?? mkdtempSync(join(tmpdir(), "planner-e2e-"));
 const PORT = 4174;
 const DEBUG_PORT = 9334;
+// Build and test with the same BASE_PATH to check a subpath deploy (GitHub Pages)
+const SITE = `http://localhost:${PORT}${process.env.BASE_PATH ?? "/"}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], { stdio: "ignore" });
@@ -34,7 +37,7 @@ async function poll(fn, ms = 30000) {
   }
 }
 
-await poll(() => fetch(`http://localhost:${PORT}/`).then((r) => r.ok));
+await poll(() => fetch(SITE).then((r) => r.ok));
 const targets = await poll(() => fetch(`http://127.0.0.1:${DEBUG_PORT}/json`).then((r) => r.json()));
 const ws = new WebSocket(targets.find((t) => t.type === "page").webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));
@@ -58,7 +61,7 @@ const text = (id) => js(`document.getElementById(${JSON.stringify(id)}).textCont
 await send("Runtime.enable");
 await send("Page.enable");
 await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: out });
-await send("Page.navigate", { url: `http://localhost:${PORT}/` });
+await send("Page.navigate", { url: SITE });
 await poll(() => js(`document.readyState === "complete"`));
 await js(`localStorage.clear()`);
 await send("Page.reload");
