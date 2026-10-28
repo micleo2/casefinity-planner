@@ -5,9 +5,9 @@ import type { ParamValues } from "./vendor/casefinity/models/index.ts";
  *
  * Plan-view convention matches casefinity's bin frame: +X is to the right,
  * +Y is toward the top of the grid (the back of the case). A bin's
- * `modulesX` becomes casefinity's `widthModules` (X), `modulesY` becomes
+ * `unitsX` becomes casefinity's `widthModules` (X), `unitsY` becomes
  * `lengthModules` (Y). Bins are handed (ribs on -X/+Y, sockets on +X/-Y, pull
- * tab on +Y), so "rotating" a bin only swaps its module counts — the generated
+ * tab on +Y), so "rotating" a bin only swaps its grid-unit counts — the generated
  * part is never mirrored or turned.
  */
 
@@ -22,8 +22,8 @@ export const BIN_TYPES: { value: BinType; label: string; modelId: string }[] = [
 
 /** Project-wide values. Every bin in a case must share these to interlock. */
 export interface Settings {
-  areaX: number; // modules
-  areaY: number; // modules
+  areaX: number; // grid units
+  areaY: number; // grid units
   gridSpacing: number; // P, mm
   overallHeight: number; // H, mm
   wallThick: number;
@@ -36,10 +36,10 @@ export interface Settings {
   /** Case interior (casefinity perimeter OVERALL_LENGTH / OVERALL_WIDTH), mm. */
   caseLength: number;
   caseWidth: number;
-  /** casefinity perimeter's SIDE_BOARDER_BIN_ADD / FRONT_BOARDER_BIN_ADD: modules
+  /** casefinity perimeter's SIDE_BOARDER_BIN_ADD / FRONT_BOARDER_BIN_ADD: grid units
    * of case length / width given up to the border on each axis. */
-  sideBorderModules: number;
-  frontBorderModules: number;
+  sideBorderUnits: number;
+  frontBorderUnits: number;
   bedX: number;
   bedY: number;
   bedZ: number;
@@ -50,8 +50,8 @@ export interface Bin {
   /** Grid cell of the bin's top-left corner as drawn (column, row), 0-based. */
   col: number;
   row: number;
-  modulesX: number;
-  modulesY: number;
+  unitsX: number;
+  unitsY: number;
   title: string;
   type: BinType;
   pullTab: boolean;
@@ -70,7 +70,7 @@ export interface Layout {
 }
 
 /** Defaults follow casefinity.net's shipped parameter defaults. The area is its
- * default perimeter: a 350 × 250 mm case with 4 / 3 border modules → 19 × 13. */
+ * default perimeter: a 350 × 250 mm case with 4 / 3 border grid units → 19 × 13. */
 export const DEFAULT_SETTINGS: Settings = {
   areaX: 19,
   areaY: 13,
@@ -85,8 +85,8 @@ export const DEFAULT_SETTINGS: Settings = {
   wallBump: 1.5,
   draftAngle: 2,
   pullTabHeight: 5,
-  sideBorderModules: 4,
-  frontBorderModules: 3,
+  sideBorderUnits: 4,
+  frontBorderUnits: 3,
   bedX: 256,
   bedY: 256,
   bedZ: 256,
@@ -100,19 +100,19 @@ export const CASE_PRESETS: { label: string; length: number; width: number; depth
   { label: "Apache 4800", length: 454.025, width: 323.85, depth: 125 },
 ];
 
-/** Perimeter cavity in modules for a case interior dimension, using casefinity's
- * perimeter formula: floor(case / P) − border modules. Case length runs along X. */
-export function cavityModules(caseMm: number, gridSpacing: number, borderModules: number): number {
-  return Math.floor(caseMm / gridSpacing) - borderModules;
+/** Perimeter cavity in grid units for a case interior dimension, using casefinity's
+ * perimeter formula: floor(case / P) − border grid units. Case length runs along X. */
+export function cavityUnits(caseMm: number, gridSpacing: number, borderUnits: number): number {
+  return Math.floor(caseMm / gridSpacing) - borderUnits;
 }
 
-export function newBin(col: number, row: number, modulesX: number, modulesY: number): Bin {
+export function newBin(col: number, row: number, unitsX: number, unitsY: number): Bin {
   return {
     id: Math.random().toString(36).slice(2, 10),
     col,
     row,
-    modulesX,
-    modulesY,
+    unitsX,
+    unitsY,
     title: "",
     type: "no-lid",
     pullTab: true,
@@ -132,8 +132,8 @@ export function modelIdFor(type: BinType): string {
 /** Casefinity parameter overrides for one bin; unset keys take model defaults. */
 export function binParams(bin: Bin, s: Settings): ParamValues {
   const p: Record<string, number | string> = {
-    widthModules: bin.modulesX,
-    lengthModules: bin.modulesY,
+    widthModules: bin.unitsX,
+    lengthModules: bin.unitsY,
     gridSpacing: s.gridSpacing,
     overallHeight: bin.height ?? s.overallHeight,
     wallThick: s.wallThick,
@@ -151,7 +151,7 @@ export function binParams(bin: Bin, s: Settings): ParamValues {
 
 /** Printed footprint F(n) = n·P − 2c, in mm. */
 export function footprint(bin: Bin, s: Settings): [number, number] {
-  return [bin.modulesX * s.gridSpacing - 2 * s.clear, bin.modulesY * s.gridSpacing - 2 * s.clear];
+  return [bin.unitsX * s.gridSpacing - 2 * s.clear, bin.unitsY * s.gridSpacing - 2 * s.clear];
 }
 
 /** Plan-view bounding box: footprint plus the ribs standing proud on -X and +Y. */
@@ -171,6 +171,6 @@ function slug(text: string): string {
 
 /** File stem for a bin's exported part, e.g. "03x05_small-parts_no-lid". */
 export function fileStem(bin: Bin): string {
-  const size = `${String(bin.modulesX).padStart(2, "0")}x${String(bin.modulesY).padStart(2, "0")}`;
+  const size = `${String(bin.unitsX).padStart(2, "0")}x${String(bin.unitsY).padStart(2, "0")}`;
   return [size, slug(bin.title), bin.type].filter(Boolean).join("_");
 }

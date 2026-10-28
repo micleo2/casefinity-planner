@@ -5,7 +5,7 @@ import {
   BIN_TYPES,
   CASE_PRESETS,
   DEFAULT_SETTINGS,
-  cavityModules,
+  cavityUnits,
   binParams,
   boundingBox,
   buildHeight,
@@ -80,12 +80,12 @@ function select(id: string | null) {
 const settingKeys: (keyof Settings)[] = [
   "areaX", "areaY", "gridSpacing", "overallHeight", "wallThick", "clear",
   "floorThick", "ribWidth", "wallBump", "draftAngle", "pullTabHeight",
-  "caseLength", "caseWidth", "sideBorderModules", "frontBorderModules", "bedX", "bedY", "bedZ",
+  "caseLength", "caseWidth", "sideBorderUnits", "frontBorderUnits", "bedX", "bedY", "bedZ",
 ];
-const integerSettings = new Set<keyof Settings>(["areaX", "areaY", "sideBorderModules", "frontBorderModules"]);
-const zeroAllowed = new Set<keyof Settings>(["draftAngle", "sideBorderModules", "frontBorderModules"]);
+const integerSettings = new Set<keyof Settings>(["areaX", "areaY", "sideBorderUnits", "frontBorderUnits"]);
+const zeroAllowed = new Set<keyof Settings>(["draftAngle", "sideBorderUnits", "frontBorderUnits"]);
 /** Settings that feed casefinity's perimeter formula: editing one recomputes the area. */
-const caseKeys = new Set<keyof Settings>(["caseLength", "caseWidth", "sideBorderModules", "frontBorderModules"]);
+const caseKeys = new Set<keyof Settings>(["caseLength", "caseWidth", "sideBorderUnits", "frontBorderUnits"]);
 
 function syncSettingInputs() {
   for (const key of settingKeys) $<HTMLInputElement>(key).value = String(layout.settings[key]);
@@ -113,11 +113,11 @@ const presetSelect = $<HTMLSelectElement>("case-preset");
 presetSelect.add(new Option("--Custom--", ""));
 for (const p of CASE_PRESETS) presetSelect.add(new Option(p.label, p.label));
 
-/** Area modules from the case size, with casefinity's perimeter formula. */
+/** Area in grid units from the case size, with casefinity's perimeter formula. */
 function applyCaseSize() {
   const s = layout.settings;
-  const x = cavityModules(s.caseLength, s.gridSpacing, s.sideBorderModules);
-  const y = cavityModules(s.caseWidth, s.gridSpacing, s.frontBorderModules);
+  const x = cavityUnits(s.caseLength, s.gridSpacing, s.sideBorderUnits);
+  const y = cavityUnits(s.caseWidth, s.gridSpacing, s.frontBorderUnits);
   if (x >= 1 && y >= 1 && x <= 60 && y <= 60) {
     s.areaX = x;
     s.areaY = y;
@@ -164,8 +164,8 @@ function syncBinInputs() {
   $("bin-error").hidden = true;
   if (!bin) return;
   binInputs.title.value = bin.title;
-  binInputs.mx.value = String(bin.modulesX);
-  binInputs.my.value = String(bin.modulesY);
+  binInputs.mx.value = String(bin.unitsX);
+  binInputs.my.value = String(bin.unitsY);
   typeSelect.value = bin.type;
   binInputs.height.value = bin.height === null ? "" : String(bin.height);
   binInputs.lidLabel.value = bin.lidLabel;
@@ -179,14 +179,14 @@ function binError(text: string | null) {
   e.textContent = text ?? "";
 }
 
-/** Resize the selected bin from the module inputs, if there's room. */
+/** Resize the selected bin from the grid-unit inputs, if there's room. */
 function resizeSelected() {
   const bin = selected();
   if (!bin) return;
   const mx = Math.round(binInputs.mx.valueAsNumber);
   const my = Math.round(binInputs.my.valueAsNumber);
   if (!(mx >= 1 && my >= 1)) return;
-  const rect = { col: bin.col, row: bin.row, modulesX: mx, modulesY: my };
+  const rect = { col: bin.col, row: bin.row, unitsX: mx, unitsY: my };
   if (canPlace(layout, rect, bin.id)) {
     binError(null);
     Object.assign(bin, rect);
@@ -239,14 +239,14 @@ binInputs.pullTab.addEventListener("change", () => {
 
 function rotateSelected() {
   const bin = selected();
-  if (!bin || bin.modulesX === bin.modulesY) return;
-  const rect = { col: bin.col, row: bin.row, modulesX: bin.modulesY, modulesY: bin.modulesX };
+  if (!bin || bin.unitsX === bin.unitsY) return;
+  const rect = { col: bin.col, row: bin.row, unitsX: bin.unitsY, unitsY: bin.unitsX };
   if (canPlace(layout, rect, bin.id)) {
     Object.assign(bin, rect);
     syncBinInputs();
     update(true);
   } else {
-    binError(`No room to rotate to ${rect.modulesX}×${rect.modulesY} here.`);
+    binError(`No room to rotate to ${rect.unitsX}×${rect.unitsY} here.`);
   }
 }
 
@@ -261,7 +261,7 @@ function deleteSelected() {
 function moveSelected(dCol: number, dRow: number) {
   const bin = selected();
   if (!bin) return;
-  const rect = { col: bin.col + dCol, row: bin.row + dRow, modulesX: bin.modulesX, modulesY: bin.modulesY };
+  const rect = { col: bin.col + dCol, row: bin.row + dRow, unitsX: bin.unitsX, unitsY: bin.unitsY };
   if (canPlace(layout, rect, bin.id)) {
     Object.assign(bin, rect);
     update(true);
@@ -278,7 +278,7 @@ const grid = new GridEditor($("grid") as unknown as SVGSVGElement, {
   selectedId: () => selectedId,
   select,
   create(rect) {
-    const bin = newBin(rect.col, rect.row, rect.modulesX, rect.modulesY);
+    const bin = newBin(rect.col, rect.row, rect.unitsX, rect.unitsY);
     layout.bins.push(bin);
     selectedId = bin.id;
     syncBinInputs();
@@ -321,19 +321,19 @@ document.addEventListener("keydown", (e) => {
 
 function render() {
   const s = layout.settings;
-  const cx = cavityModules(s.caseLength, s.gridSpacing, s.sideBorderModules);
-  const cy = cavityModules(s.caseWidth, s.gridSpacing, s.frontBorderModules);
+  const cx = cavityUnits(s.caseLength, s.gridSpacing, s.sideBorderUnits);
+  const cy = cavityUnits(s.caseWidth, s.gridSpacing, s.frontBorderUnits);
   const preset = CASE_PRESETS.find((p) => p.length === s.caseLength && p.width === s.caseWidth);
   const caseHint = $("case-hint");
   caseHint.textContent =
-    `floor(${s.caseLength} ÷ ${s.gridSpacing}) − ${s.sideBorderModules} = ${cx}, ` +
-    `floor(${s.caseWidth} ÷ ${s.gridSpacing}) − ${s.frontBorderModules} = ${cy} modules` +
+    `floor(${s.caseLength} ÷ ${s.gridSpacing}) − ${s.sideBorderUnits} = ${cx}, ` +
+    `floor(${s.caseWidth} ÷ ${s.gridSpacing}) − ${s.frontBorderUnits} = ${cy} grid units` +
     (preset ? ` · case depth ${preset.depth} mm` : "") +
-    ". Border modules must match the perimeter's “Side / Front border bins” on casefinity.net.";
+    ". The border settings must match the perimeter's “Side / Front border bins” on casefinity.net.";
   caseHint.className = cx >= 1 && cy >= 1 && cx <= 60 && cy <= 60 ? "hint" : "hint bad";
   $("area-hint").textContent =
     `Area: ${fmt(s.areaX * s.gridSpacing)} × ${fmt(s.areaY * s.gridSpacing)} mm ` +
-    `(${s.areaX} × ${s.areaY} modules) inside the perimeter.`;
+    `(${s.areaX} × ${s.areaY} grid units of 15 mm) inside the perimeter.`;
   $("clear-hint").textContent =
     `Registration clearance per flank. Default 0.10 (socket = w + 2c = ${fmt(s.ribWidth + 2 * s.clear)}). ` +
     `Applies project-wide — parts with different c don't fit together.`;
@@ -349,14 +349,14 @@ function render() {
       `Footprint ${fmt(fx)} × ${fmt(fy)} mm · Bounding box ${fmt(bx)} × ${fmt(by)} mm` +
       (fits ? "" : " — does not fit the print bed");
     dims.className = fits ? "hint" : "hint bad";
-    $("bin-heading").textContent = `Bin ${bin.modulesX}×${bin.modulesY}`;
+    $("bin-heading").textContent = `Bin ${bin.unitsX}×${bin.unitsY}`;
     binInputs.height.placeholder = String(s.overallHeight);
     $("lid-label-row").hidden = bin.type !== "with-lid";
     $("fillet-row").hidden = bin.type !== "double-sided";
     $("bin-tab-hint").textContent = bin.pullTab
       ? `Build height ${z} mm — the tab stands ${s.pullTabHeight} mm above the rim.`
       : `Build height ${z} mm.`;
-    ($("bin-rotate") as HTMLButtonElement).disabled = bin.modulesX === bin.modulesY;
+    ($("bin-rotate") as HTMLButtonElement).disabled = bin.unitsX === bin.unitsY;
   }
 
   const checks = $("checks");
@@ -500,7 +500,7 @@ function schedulePreview() {
         v.frame();
         lastFramedId = bin.id;
       }
-      previewStatus.textContent = `${bin.modulesX}×${bin.modulesY} ${BIN_TYPES.find((t) => t.value === bin.type)!.label.toLowerCase()} · built in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+      previewStatus.textContent = `${bin.unitsX}×${bin.unitsY} ${BIN_TYPES.find((t) => t.value === bin.type)!.label.toLowerCase()} · built in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
     } catch (err) {
       if (seq === previewSeq) previewStatus.textContent = `Preview failed: ${err instanceof Error ? err.message : String(err)}`;
     }

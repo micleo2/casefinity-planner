@@ -43,7 +43,7 @@ function el<K extends keyof SVGElementTagNameMap>(
   return node;
 }
 
-const rectOf = (b: Rect): Rect => ({ col: b.col, row: b.row, modulesX: b.modulesX, modulesY: b.modulesY });
+const rectOf = (b: Rect): Rect => ({ col: b.col, row: b.row, unitsX: b.unitsX, unitsY: b.unitsY });
 
 export class GridEditor {
   private drag: Drag | null = null;
@@ -86,7 +86,7 @@ export class GridEditor {
         this.hooks.select(null);
         return;
       }
-      const rect = { col: c, row: r, modulesX: 1, modulesY: 1 };
+      const rect = { col: c, row: r, unitsX: 1, unitsY: 1 };
       this.drag = { mode: "draw", anchorCol: c, anchorRow: r, rect, pointerId: e.pointerId };
     }
     this.svg.setPointerCapture(e.pointerId);
@@ -104,8 +104,8 @@ export class GridEditor {
       d.rect = {
         col: Math.min(c, d.anchorCol),
         row: Math.min(r, d.anchorRow),
-        modulesX: Math.abs(c - d.anchorCol) + 1,
-        modulesY: Math.abs(r - d.anchorRow) + 1,
+        unitsX: Math.abs(c - d.anchorCol) + 1,
+        unitsY: Math.abs(r - d.anchorRow) + 1,
       };
       this.render();
       return;
@@ -117,16 +117,16 @@ export class GridEditor {
       cand = { ...rectOf(d.bin), col: c - d.dCol, row: r - d.dRow };
     } else {
       const s = d.start;
-      const right = s.col + s.modulesX; // exclusive
-      const bottom = s.row + s.modulesY;
+      const right = s.col + s.unitsX; // exclusive
+      const bottom = s.row + s.unitsY;
       cand = { ...s };
-      if (d.edge === "left") { const col = Math.min(c, right - 1); cand.col = col; cand.modulesX = right - col; }
-      if (d.edge === "right") cand.modulesX = Math.max(1, c - s.col + 1);
-      if (d.edge === "top") { const row = Math.min(r, bottom - 1); cand.row = row; cand.modulesY = bottom - row; }
-      if (d.edge === "bottom") cand.modulesY = Math.max(1, r - s.row + 1);
+      if (d.edge === "left") { const col = Math.min(c, right - 1); cand.col = col; cand.unitsX = right - col; }
+      if (d.edge === "right") cand.unitsX = Math.max(1, c - s.col + 1);
+      if (d.edge === "top") { const row = Math.min(r, bottom - 1); cand.row = row; cand.unitsY = bottom - row; }
+      if (d.edge === "bottom") cand.unitsY = Math.max(1, r - s.row + 1);
     }
     const cur = rectOf(d.bin);
-    const same = cand.col === cur.col && cand.row === cur.row && cand.modulesX === cur.modulesX && cand.modulesY === cur.modulesY;
+    const same = cand.col === cur.col && cand.row === cur.row && cand.unitsX === cur.unitsX && cand.unitsY === cur.unitsY;
     if (!same && canPlace(layout, cand, d.bin.id)) {
       Object.assign(d.bin, cand);
       if (d.mode === "move") d.moved = true;
@@ -146,7 +146,7 @@ export class GridEditor {
     if (cancelled) Object.assign(d.bin, d.start);
     const s = d.start;
     const b = d.bin;
-    const changed = b.col !== s.col || b.row !== s.row || b.modulesX !== s.modulesX || b.modulesY !== s.modulesY;
+    const changed = b.col !== s.col || b.row !== s.row || b.unitsX !== s.unitsX || b.unitsY !== s.unitsY;
     if (changed || cancelled) this.hooks.changed(true);
     else this.render();
   }
@@ -187,8 +187,8 @@ export class GridEditor {
     for (const b of bins) {
       const x = MARGIN + b.col * CELL;
       const y = MARGIN + b.row * CELL;
-      const w = b.modulesX * CELL;
-      const h = b.modulesY * CELL;
+      const w = b.unitsX * CELL;
+      const h = b.unitsY * CELL;
       const isSel = b.id === selected;
       const bad = !inBounds(b, s) || !fitsBed(b, s);
       const g = el("g", { class: `bin${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
@@ -196,7 +196,7 @@ export class GridEditor {
       if (b.pullTab) {
         g.append(el("rect", { class: "tab", x: x + w / 2 - Math.min(8, w / 4), y: y + 3, width: Math.min(16, w / 2), height: 3, rx: 1 }));
       }
-      const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.modulesX}×${b.modulesY}`);
+      const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);
       if (b.title && h >= 2 * CELL) {
         const t = b.title.length > w / 7 ? `${b.title.slice(0, Math.max(1, Math.floor(w / 7) - 1))}…` : b.title;
@@ -230,15 +230,15 @@ export class GridEditor {
         class: `ghost${ok ? "" : " invalid"}`,
         x: MARGIN + r.col * CELL + 1.5,
         y: MARGIN + r.row * CELL + 1.5,
-        width: r.modulesX * CELL - 3,
-        height: r.modulesY * CELL - 3,
+        width: r.unitsX * CELL - 3,
+        height: r.unitsY * CELL - 3,
         rx: 3,
       }));
       svg.append(el("text", {
         class: "ghost-label",
-        x: MARGIN + (r.col + r.modulesX / 2) * CELL,
-        y: MARGIN + (r.row + r.modulesY / 2) * CELL,
-      }, `${r.modulesX}×${r.modulesY}`));
+        x: MARGIN + (r.col + r.unitsX / 2) * CELL,
+        y: MARGIN + (r.row + r.unitsY / 2) * CELL,
+      }, `${r.unitsX}×${r.unitsY}`));
     }
   }
 }

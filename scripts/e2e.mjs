@@ -99,7 +99,7 @@ const key = async (k, code = k, mods = 0) => {
   await send("Input.dispatchKeyEvent", { type: "keyDown", key: k, code, modifiers: mods });
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, modifiers: mods });
 };
-const bins = () => js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.map(b => [b.col, b.row, b.modulesX, b.modulesY])`);
+const bins = () => js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.map(b => [b.col, b.row, b.unitsX, b.unitsY])`);
 
 // --- recreate the reference screenshot's layout (15×15, 17 bins) -------------
 const ref = [
@@ -112,7 +112,7 @@ for (const b of ref) await drawBin(...b);
 assert.equal((await bins()).length, 17, "all 17 bins drawn");
 let checks = await text("checks");
 assert.match(checks, /✓ Transport-safe/);
-assert.match(checks, /✓ All modules filled/);
+assert.match(checks, /✓ All grid units filled/);
 assert.match(checks, /✓ Every bin fits the print bed/);
 assert.match(await text("export"), /Export 17 bin\(s\) as ZIP \(11 unique\)/);
 console.log("ok   reference layout: 17 bins, 11 unique parts, all checks pass");
@@ -161,7 +161,7 @@ console.log("ok   move / resize handle / rotate / arrow-key move");
 // put the 4×7 back so the export matches the reference
 await key("Delete");
 await drawBin(11, 8, 4, 7);
-assert.match(await text("checks"), /✓ All modules filled/);
+assert.match(await text("checks"), /✓ All grid units filled/);
 
 // --- one bin of each other type, for the export -----------------------------------
 const setType = async (c, r, type) => {
@@ -211,8 +211,8 @@ await pickPreset("Apache 4800");
 assert.equal(await area(), "26×18");
 await pickPreset("Apache 3800");
 assert.equal(await area(), "21×14");
-assert.match(await text("case-hint"), /= 21, .* = 14 modules · case depth 110 mm/);
-await js(`(() => { const i = document.getElementById("sideBorderModules"); i.value = "5"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); })()`);
+assert.match(await text("case-hint"), /= 21, .* = 14 grid units · case depth 110 mm/);
+await js(`(() => { const i = document.getElementById("sideBorderUnits"); i.value = "5"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); })()`);
 assert.equal(await area(), "20×14");
 // the 15-row reference layout no longer fits 14 rows: kept, but flagged
 assert.equal((await bins()).length, 17);
@@ -221,7 +221,7 @@ assert.equal(await presetText(), "Apache 3800");
 await pickPreset(""); // --Custom-- restores casefinity's 350 × 250 (border is now 5 / 3)
 assert.equal(await area(), "18×13");
 assert.equal(await presetText(), "--Custom--");
-console.log("ok   Apache 3800 → 21×14, Apache 4800 → 26×18, border modules re-apply, --Custom-- restores defaults");
+console.log("ok   Apache 3800 → 21×14, Apache 4800 → 26×18, border units re-apply, --Custom-- restores defaults");
 
 // --- screenshot for review --------------------------------------------------------
 await drag(await cellXY(3, 12), await cellXY(3, 12));

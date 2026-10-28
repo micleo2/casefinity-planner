@@ -18,12 +18,12 @@ const levels = (l) => runChecks(l).map((c) => `${c.level}: ${c.text.split(":")[0
 
 test("placement rejects overlaps and out-of-area rects", () => {
   const l = layoutWith(4, 4, [[0, 0, 2, 2]]);
-  assert.equal(canPlace(l, { col: 2, row: 0, modulesX: 2, modulesY: 2 }), true);
-  assert.equal(canPlace(l, { col: 1, row: 1, modulesX: 2, modulesY: 2 }), false);
-  assert.equal(canPlace(l, { col: 3, row: 3, modulesX: 2, modulesY: 1 }), false);
-  assert.equal(canPlace(l, { col: -1, row: 0, modulesX: 1, modulesY: 1 }), false);
+  assert.equal(canPlace(l, { col: 2, row: 0, unitsX: 2, unitsY: 2 }), true);
+  assert.equal(canPlace(l, { col: 1, row: 1, unitsX: 2, unitsY: 2 }), false);
+  assert.equal(canPlace(l, { col: 3, row: 3, unitsX: 2, unitsY: 1 }), false);
+  assert.equal(canPlace(l, { col: -1, row: 0, unitsX: 1, unitsY: 1 }), false);
   // the bin being edited doesn't collide with itself
-  assert.equal(canPlace(l, { col: 0, row: 0, modulesX: 3, modulesY: 2 }, l.bins[0].id), true);
+  assert.equal(canPlace(l, { col: 0, row: 0, unitsX: 3, unitsY: 2 }, l.bins[0].id), true);
 });
 
 test("full rows are transport-safe", () => {
@@ -31,7 +31,7 @@ test("full rows are transport-safe", () => {
   const l = layoutWith(4, 4, [[0, 0, 2, 2], [2, 0, 2, 2], [0, 2, 4, 2]]);
   const c = levels(l);
   assert.ok(c.some((t) => t.startsWith("ok: Transport-safe")), c.join("\n"));
-  assert.ok(c.includes("ok: All modules filled."));
+  assert.ok(c.includes("ok: All grid units filled."));
 });
 
 test("full columns are transport-safe even with partial rows", () => {
@@ -73,11 +73,11 @@ test("serialize/parse round-trips and sanitizes", () => {
   const dirty = parseLayout(JSON.stringify({
     version: 1,
     settings: { areaX: "lots", gridSpacing: 20 },
-    bins: [{ id: "<script>", modulesX: 0, type: "rocket", pullTab: "yes", height: -3 }],
+    bins: [{ id: "<script>", unitsX: 0, type: "rocket", pullTab: "yes", height: -3 }],
   }));
   assert.equal(dirty.settings.areaX, DEFAULT_SETTINGS.areaX);
   assert.equal(dirty.settings.gridSpacing, 20);
-  assert.equal(dirty.bins[0].modulesX, 1);
+  assert.equal(dirty.bins[0].unitsX, 1);
   assert.equal(dirty.bins[0].type, "no-lid");
   assert.equal(dirty.bins[0].pullTab, true);
   assert.equal(dirty.bins[0].height, null);
@@ -104,30 +104,42 @@ test("case presets match casefinity's perimeter presets", async () => {
   );
 });
 
-test("cavity modules use casefinity's perimeter formula", async () => {
-  const { cavityModules } = await import("../src/bins.ts");
+test("cavity size in grid units uses casefinity's perimeter formula", async () => {
+  const { cavityUnits } = await import("../src/bins.ts");
   const s = DEFAULT_SETTINGS;
   // Apache 3800: 377.825 × 268.2875 mm → 25 − 4, 17 − 3
-  assert.equal(cavityModules(377.825, s.gridSpacing, s.sideBorderModules), 21);
-  assert.equal(cavityModules(268.2875, s.gridSpacing, s.frontBorderModules), 14);
+  assert.equal(cavityUnits(377.825, s.gridSpacing, s.sideBorderUnits), 21);
+  assert.equal(cavityUnits(268.2875, s.gridSpacing, s.frontBorderUnits), 14);
   // Apache 4800: 454.025 × 323.85 mm → 30 − 4, 21 − 3
-  assert.equal(cavityModules(454.025, s.gridSpacing, s.sideBorderModules), 26);
-  assert.equal(cavityModules(323.85, s.gridSpacing, s.frontBorderModules), 18);
+  assert.equal(cavityUnits(454.025, s.gridSpacing, s.sideBorderUnits), 26);
+  assert.equal(cavityUnits(323.85, s.gridSpacing, s.frontBorderUnits), 18);
   // spec §7 worked example: 350 × 250 → 19 × 13
-  assert.equal(cavityModules(350, 15, 4), 19);
-  assert.equal(cavityModules(250, 15, 3), 13);
+  assert.equal(cavityUnits(350, 15, 4), 19);
+  assert.equal(cavityUnits(250, 15, 3), 13);
 });
 
 test("default case is casefinity's default perimeter (350 × 250 → 19 × 13)", async () => {
-  const { cavityModules } = await import("../src/bins.ts");
+  const { cavityUnits } = await import("../src/bins.ts");
   const { perimeter } = await import("../src/vendor/casefinity/models/perimeter.ts");
   const d = Object.fromEntries(perimeter.params.map((p) => [p.key, p.default]));
   const s = DEFAULT_SETTINGS;
   assert.equal(s.caseLength, d.overallLength);
   assert.equal(s.caseWidth, d.overallWidth);
-  assert.equal(s.sideBorderModules, d.sideBoarderBinAdd);
-  assert.equal(s.frontBorderModules, d.frontBoarderBinAdd);
+  assert.equal(s.sideBorderUnits, d.sideBoarderBinAdd);
+  assert.equal(s.frontBorderUnits, d.frontBoarderBinAdd);
   assert.equal(s.gridSpacing, d.gridSpacing);
-  assert.equal(cavityModules(s.caseLength, s.gridSpacing, s.sideBorderModules), s.areaX);
-  assert.equal(cavityModules(s.caseWidth, s.gridSpacing, s.frontBorderModules), s.areaY);
+  assert.equal(cavityUnits(s.caseLength, s.gridSpacing, s.sideBorderUnits), s.areaX);
+  assert.equal(cavityUnits(s.caseWidth, s.gridSpacing, s.frontBorderUnits), s.areaY);
+});
+
+test("layouts saved before the grid-unit rename still load", () => {
+  const old = parseLayout(JSON.stringify({
+    version: 1,
+    settings: { areaX: 21, areaY: 14, sideBorderModules: 5 },
+    bins: [{ id: "abc", col: 2, row: 3, modulesX: 4, modulesY: 6 }],
+  }));
+  assert.equal(old.bins[0].unitsX, 4);
+  assert.equal(old.bins[0].unitsY, 6);
+  assert.equal(old.settings.sideBorderUnits, 5);
+  assert.equal(old.settings.areaX, 21);
 });

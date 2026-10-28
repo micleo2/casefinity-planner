@@ -9,18 +9,18 @@ import type { Bin, BinType, Layout, Settings } from "./bins.ts";
 export interface Rect {
   col: number;
   row: number;
-  modulesX: number;
-  modulesY: number;
+  unitsX: number;
+  unitsY: number;
 }
 
 export function inBounds(r: Rect, s: Settings): boolean {
-  return r.col >= 0 && r.row >= 0 && r.modulesX >= 1 && r.modulesY >= 1 &&
-    r.col + r.modulesX <= s.areaX && r.row + r.modulesY <= s.areaY;
+  return r.col >= 0 && r.row >= 0 && r.unitsX >= 1 && r.unitsY >= 1 &&
+    r.col + r.unitsX <= s.areaX && r.row + r.unitsY <= s.areaY;
 }
 
 export function overlaps(a: Rect, b: Rect): boolean {
-  return a.col < b.col + b.modulesX && b.col < a.col + a.modulesX &&
-    a.row < b.row + b.modulesY && b.row < a.row + a.modulesY;
+  return a.col < b.col + b.unitsX && b.col < a.col + a.unitsX &&
+    a.row < b.row + b.unitsY && b.row < a.row + a.unitsY;
 }
 
 /** Whether `r` can be placed, ignoring the bin with id `ignoreId` (the one being edited). */
@@ -34,8 +34,8 @@ export function occupancy(layout: Layout): (string | null)[][] {
   const { areaX, areaY } = layout.settings;
   const grid: (string | null)[][] = Array.from({ length: areaY }, () => Array(areaX).fill(null));
   for (const b of layout.bins) {
-    for (let r = b.row; r < Math.min(b.row + b.modulesY, areaY); r++) {
-      for (let c = b.col; c < Math.min(b.col + b.modulesX, areaX); c++) grid[r][c] = b.id;
+    for (let r = b.row; r < Math.min(b.row + b.unitsY, areaY); r++) {
+      for (let c = b.col; c < Math.min(b.col + b.unitsX, areaX); c++) grid[r][c] = b.id;
     }
   }
   return grid;
@@ -100,26 +100,26 @@ export function runChecks(layout: Layout): Check[] {
   }
 
   const empty = grid.flat().filter((c) => !c).length;
-  if (empty === 0) pass("All modules filled.");
-  else warn(`${empty} of ${s.areaX * s.areaY} modules empty.`);
+  if (empty === 0) pass("All grid units filled.");
+  else warn(`${empty} of ${s.areaX * s.areaY} grid units empty.`);
 
   const tooBig = layout.bins.filter((b) => !fitsBed(b, s));
   if (tooBig.length) {
-    fail(`Doesn't fit the print bed: ${tooBig.map((b) => `${b.modulesX}×${b.modulesY}`).join(", ")}.`);
+    fail(`Doesn't fit the print bed: ${tooBig.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}.`);
   } else {
     pass("Every bin fits the print bed.");
   }
 
   const warpy = layout.bins.filter((b) => warpRisk(b, s));
   if (warpy.length) {
-    warn(`Warp risk (long side ≥ ${WARP_SPAN_MM} mm): ${warpy.map((b) => `${b.modulesX}×${b.modulesY}`).join(", ")}. Use a brim or split the bin.`);
+    warn(`Warp risk (long side ≥ ${WARP_SPAN_MM} mm): ${warpy.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}. Use a brim or split the bin.`);
   }
 
   const lopsided = layout.bins.filter((b) =>
-    b.type === "double-sided" && b.modulesX !== b.modulesY && b.bottomFillet <= DEFAULT_BOTTOM_FILLET);
+    b.type === "double-sided" && b.unitsX !== b.unitsY && b.bottomFillet <= DEFAULT_BOTTOM_FILLET);
   if (lopsided.length) {
     warn(
-      `Rectangular double-sided bin(s) ${lopsided.map((b) => `${b.modulesX}×${b.modulesY}`).join(", ")}: ` +
+      `Rectangular double-sided bin(s) ${lopsided.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}: ` +
       "check the hopper in the preview and raise the fillet inset if it overhangs (the guide used 4.5 for 4×8).",
     );
   }
@@ -139,6 +139,22 @@ function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
 
+/** Layouts saved before the rename to grid units used the old key names. */
+const RENAMED: Record<string, string> = {
+  modulesX: "unitsX",
+  modulesY: "unitsY",
+  sideBorderModules: "sideBorderUnits",
+  frontBorderModules: "frontBorderUnits",
+};
+function renamedKeys(obj: unknown): Record<string, unknown> {
+  if (!obj || typeof obj !== "object") return {};
+  const out: Record<string, unknown> = {};
+  for (const [from, to] of Object.entries(RENAMED)) {
+    if (from in obj) out[to] = (obj as Record<string, unknown>)[from];
+  }
+  return out;
+}
+
 /** Parse untrusted JSON (a file or localStorage) into a valid Layout. Throws on garbage. */
 export function parseLayout(json: string): Layout {
   const raw = JSON.parse(json);
@@ -146,11 +162,13 @@ export function parseLayout(json: string): Layout {
     throw new Error("Not a Casefinity Planner layout file.");
   }
   const settings = { ...DEFAULT_SETTINGS };
+  const rawSettings = { ...renamedKeys(raw.settings), ...raw.settings };
   for (const key of Object.keys(settings) as (keyof Settings)[]) {
-    settings[key] = num(raw.settings?.[key], settings[key]);
+    settings[key] = num(rawSettings[key], settings[key]);
   }
-  const bins: Bin[] = raw.bins.map((b: Record<string, unknown>) => {
-    const base = newBin(num(b.col, 0), num(b.row, 0), Math.max(1, num(b.modulesX, 1)), Math.max(1, num(b.modulesY, 1)));
+  const bins: Bin[] = raw.bins.map((raw: Record<string, unknown>) => {
+    const b = { ...renamedKeys(raw), ...raw };
+    const base = newBin(num(b.col, 0), num(b.row, 0), Math.max(1, num(b.unitsX, 1)), Math.max(1, num(b.unitsY, 1)));
     return {
       ...base,
       id: typeof b.id === "string" && /^[a-z0-9]{1,16}$/.test(b.id) ? b.id : base.id,
