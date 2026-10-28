@@ -17,10 +17,10 @@ npm run dev        # http://localhost:5173
 npm run build      # static site in dist/ — host anywhere
 ```
 
-- **Area** — the perimeter cavity in modules. Pick a case preset (Apache 3800 → 21 × 14, Apache 4800 → 26 × 18,
-  same presets as casefinity.net) or enter the case's inside length/width; modules are computed with casefinity's
-  perimeter formula `floor(mm ÷ P) − border modules` (defaults 4 side / 3 front — match your perimeter). Also pitch,
-  bin height, wall, clearance.
+- **Area** — the perimeter cavity in modules. *Case preset* starts on `--Custom--` with casefinity's default
+  perimeter (350 × 250 mm → 19 × 13); pick Apache 3800 (→ 21 × 14) or Apache 4800 (→ 26 × 18), or type your case's
+  inside length/width. Modules follow casefinity's perimeter formula `floor(mm ÷ P) − border modules`; the border
+  modules (default 4 side / 3 front) must match your perimeter. Also pitch, bin height, wall, clearance.
   *Advanced* holds the remaining casefinity parameters; keep the defaults for compatibility with casefinity.net.
 - **Grid** — drag across empty cells to draw a bin; drag a bin to move it; drag the blue edge handles to resize.
   Top of the grid is the back (+Y) of the case, where each bin's pull tab sits.

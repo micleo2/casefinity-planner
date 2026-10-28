@@ -67,6 +67,18 @@ await js(`localStorage.clear()`);
 await send("Page.reload");
 await poll(() => text("status").then((t) => t.includes("ready")));
 
+// --- fresh start: --Custom-- with casefinity's default perimeter ------------------
+const area = () => js(`[document.getElementById("areaX").value, document.getElementById("areaY").value].join("×")`);
+const presetText = () => js(`(() => { const s = document.getElementById("case-preset"); return s.options[s.selectedIndex].text; })()`);
+assert.equal(await presetText(), "--Custom--");
+assert.deepEqual(await js(`[...document.getElementById("case-preset").options].map(o => o.text)`), ["--Custom--", "Apache 3800", "Apache 4800"]);
+assert.equal(await js(`[document.getElementById("caseLength").value, document.getElementById("caseWidth").value].join("×")`), "350×250");
+assert.equal(await area(), "19×13");
+console.log("ok   starts on --Custom-- with casefinity defaults: 350 × 250 mm → 19 × 13");
+// the reference screenshot is a 15 × 15 grid
+await js(`for (const id of ["areaX", "areaY"]) { const i = document.getElementById(id); i.value = "15"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); }`);
+assert.equal(await area(), "15×15");
+
 // Cell centre (0-based col,row) in viewport pixels
 const cellXY = async (c, r) => js(`(() => {
   const svg = document.getElementById("grid");
@@ -194,7 +206,6 @@ await poll(() => readdirSync(out).includes("casefinity-layout.json"));
 console.log("ok   layout persists across reload; save downloads JSON");
 
 // --- case presets (casefinity perimeter formula) ------------------------------------
-const area = () => js(`[document.getElementById("areaX").value, document.getElementById("areaY").value].join("×")`);
 const pickPreset = (label) => js(`(() => { const s = document.getElementById("case-preset"); s.value = ${JSON.stringify(label)}; s.dispatchEvent(new Event("change")); })()`);
 await pickPreset("Apache 4800");
 assert.equal(await area(), "26×18");
@@ -206,7 +217,11 @@ assert.equal(await area(), "20×14");
 // the 15-row reference layout no longer fits 14 rows: kept, but flagged
 assert.equal((await bins()).length, 17);
 assert.match(await text("checks"), /✗ 4 bin\(s\) extend past the area/);
-console.log("ok   Apache 3800 → 21×14, Apache 4800 → 26×18, border modules re-apply");
+assert.equal(await presetText(), "Apache 3800");
+await pickPreset(""); // --Custom-- restores casefinity's 350 × 250 (border is now 5 / 3)
+assert.equal(await area(), "18×13");
+assert.equal(await presetText(), "--Custom--");
+console.log("ok   Apache 3800 → 21×14, Apache 4800 → 26×18, border modules re-apply, --Custom-- restores defaults");
 
 // --- screenshot for review --------------------------------------------------------
 await drag(await cellXY(3, 12), await cellXY(3, 12));

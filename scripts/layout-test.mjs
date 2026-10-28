@@ -117,3 +117,17 @@ test("cavity modules use casefinity's perimeter formula", async () => {
   assert.equal(cavityModules(350, 15, 4), 19);
   assert.equal(cavityModules(250, 15, 3), 13);
 });
+
+test("default case is casefinity's default perimeter (350 × 250 → 19 × 13)", async () => {
+  const { cavityModules } = await import("../src/bins.ts");
+  const { perimeter } = await import("../src/vendor/casefinity/models/perimeter.ts");
+  const d = Object.fromEntries(perimeter.params.map((p) => [p.key, p.default]));
+  const s = DEFAULT_SETTINGS;
+  assert.equal(s.caseLength, d.overallLength);
+  assert.equal(s.caseWidth, d.overallWidth);
+  assert.equal(s.sideBorderModules, d.sideBoarderBinAdd);
+  assert.equal(s.frontBorderModules, d.frontBoarderBinAdd);
+  assert.equal(s.gridSpacing, d.gridSpacing);
+  assert.equal(cavityModules(s.caseLength, s.gridSpacing, s.sideBorderModules), s.areaX);
+  assert.equal(cavityModules(s.caseWidth, s.gridSpacing, s.frontBorderModules), s.areaY);
+});

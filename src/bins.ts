@@ -33,6 +33,9 @@ export interface Settings {
   wallBump: number;
   draftAngle: number;
   pullTabHeight: number;
+  /** Case interior (casefinity perimeter OVERALL_LENGTH / OVERALL_WIDTH), mm. */
+  caseLength: number;
+  caseWidth: number;
   /** casefinity perimeter's SIDE_BOARDER_BIN_ADD / FRONT_BOARDER_BIN_ADD: modules
    * of case length / width given up to the border on each axis. */
   sideBorderModules: number;
@@ -66,10 +69,13 @@ export interface Layout {
   bins: Bin[];
 }
 
-/** Defaults follow casefinity.net's shipped parameter defaults. */
+/** Defaults follow casefinity.net's shipped parameter defaults. The area is its
+ * default perimeter: a 350 × 250 mm case with 4 / 3 border modules → 19 × 13. */
 export const DEFAULT_SETTINGS: Settings = {
-  areaX: 15,
-  areaY: 15,
+  areaX: 19,
+  areaY: 13,
+  caseLength: 350,
+  caseWidth: 250,
   gridSpacing: 15,
   overallHeight: 110,
   wallThick: 1.2,

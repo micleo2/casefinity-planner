@@ -80,13 +80,17 @@ function select(id: string | null) {
 const settingKeys: (keyof Settings)[] = [
   "areaX", "areaY", "gridSpacing", "overallHeight", "wallThick", "clear",
   "floorThick", "ribWidth", "wallBump", "draftAngle", "pullTabHeight",
-  "sideBorderModules", "frontBorderModules", "bedX", "bedY", "bedZ",
+  "caseLength", "caseWidth", "sideBorderModules", "frontBorderModules", "bedX", "bedY", "bedZ",
 ];
 const integerSettings = new Set<keyof Settings>(["areaX", "areaY", "sideBorderModules", "frontBorderModules"]);
 const zeroAllowed = new Set<keyof Settings>(["draftAngle", "sideBorderModules", "frontBorderModules"]);
+/** Settings that feed casefinity's perimeter formula: editing one recomputes the area. */
+const caseKeys = new Set<keyof Settings>(["caseLength", "caseWidth", "sideBorderModules", "frontBorderModules"]);
 
 function syncSettingInputs() {
   for (const key of settingKeys) $<HTMLInputElement>(key).value = String(layout.settings[key]);
+  const s = layout.settings;
+  presetSelect.value = CASE_PRESETS.find((p) => p.length === s.caseLength && p.width === s.caseWidth)?.label ?? "";
 }
 
 for (const key of settingKeys) {
@@ -99,60 +103,34 @@ for (const key of settingKeys) {
     update();
   });
   input.addEventListener("change", () => {
-    if (key === "sideBorderModules" || key === "frontBorderModules") applyCaseSize();
+    if (caseKeys.has(key)) applyCaseSize();
     syncSettingInputs();
     update(true);
   });
 }
 
 const presetSelect = $<HTMLSelectElement>("case-preset");
-presetSelect.add(new Option("Custom — enter case size", ""));
-for (const p of CASE_PRESETS) {
-  const s = DEFAULT_SETTINGS;
-  const x = cavityModules(p.length, s.gridSpacing, s.sideBorderModules);
-  const y = cavityModules(p.width, s.gridSpacing, s.frontBorderModules);
-  presetSelect.add(new Option(`${p.label} (${x} × ${y} modules at defaults)`, p.label));
-}
+presetSelect.add(new Option("--Custom--", ""));
+for (const p of CASE_PRESETS) presetSelect.add(new Option(p.label, p.label));
 
-/** Area modules from the case-size inputs, with casefinity's perimeter formula. */
+/** Area modules from the case size, with casefinity's perimeter formula. */
 function applyCaseSize() {
   const s = layout.settings;
-  const hint = $("case-hint");
-  const mmX = $<HTMLInputElement>("mmX").valueAsNumber;
-  const mmY = $<HTMLInputElement>("mmY").valueAsNumber;
-  if (!(mmX > 0 && mmY > 0)) return;
-  const x = cavityModules(mmX, s.gridSpacing, s.sideBorderModules);
-  const y = cavityModules(mmY, s.gridSpacing, s.frontBorderModules);
-  if (x < 1 || y < 1 || x > 60 || y > 60) {
-    hint.textContent = `That gives ${x} × ${y} modules — check the case size and border modules.`;
-    hint.className = "hint bad";
-    return;
+  const x = cavityModules(s.caseLength, s.gridSpacing, s.sideBorderModules);
+  const y = cavityModules(s.caseWidth, s.gridSpacing, s.frontBorderModules);
+  if (x >= 1 && y >= 1 && x <= 60 && y <= 60) {
+    s.areaX = x;
+    s.areaY = y;
   }
-  s.areaX = x;
-  s.areaY = y;
-  const preset = CASE_PRESETS.find((p) => p.label === presetSelect.value);
-  hint.textContent =
-    `floor(${mmX} ÷ ${s.gridSpacing}) − ${s.sideBorderModules} = ${x}, ` +
-    `floor(${mmY} ÷ ${s.gridSpacing}) − ${s.frontBorderModules} = ${y} modules` +
-    (preset ? ` · case depth ${preset.depth} mm` : "") + ".";
-  hint.className = "hint";
-  syncSettingInputs();
 }
 
+/** "--Custom--" restores casefinity's own perimeter defaults; a preset fills its case. */
 presetSelect.addEventListener("change", () => {
   const preset = CASE_PRESETS.find((p) => p.label === presetSelect.value);
-  if (!preset) return;
-  $<HTMLInputElement>("mmX").value = String(preset.length);
-  $<HTMLInputElement>("mmY").value = String(preset.width);
+  layout.settings.caseLength = preset?.length ?? DEFAULT_SETTINGS.caseLength;
+  layout.settings.caseWidth = preset?.width ?? DEFAULT_SETTINGS.caseWidth;
   applyCaseSize();
-  update(true);
-});
-for (const id of ["mmX", "mmY"]) {
-  $(id).addEventListener("input", () => { presetSelect.value = ""; });
-}
-
-$("mm-to-modules").addEventListener("click", () => {
-  applyCaseSize();
+  syncSettingInputs();
   update(true);
 });
 
@@ -343,6 +321,16 @@ document.addEventListener("keydown", (e) => {
 
 function render() {
   const s = layout.settings;
+  const cx = cavityModules(s.caseLength, s.gridSpacing, s.sideBorderModules);
+  const cy = cavityModules(s.caseWidth, s.gridSpacing, s.frontBorderModules);
+  const preset = CASE_PRESETS.find((p) => p.length === s.caseLength && p.width === s.caseWidth);
+  const caseHint = $("case-hint");
+  caseHint.textContent =
+    `floor(${s.caseLength} ÷ ${s.gridSpacing}) − ${s.sideBorderModules} = ${cx}, ` +
+    `floor(${s.caseWidth} ÷ ${s.gridSpacing}) − ${s.frontBorderModules} = ${cy} modules` +
+    (preset ? ` · case depth ${preset.depth} mm` : "") +
+    ". Border modules must match the perimeter's “Side / Front border bins” on casefinity.net.";
+  caseHint.className = cx >= 1 && cy >= 1 && cx <= 60 && cy <= 60 ? "hint" : "hint bad";
   $("area-hint").textContent =
     `Area: ${fmt(s.areaX * s.gridSpacing)} × ${fmt(s.areaY * s.gridSpacing)} mm ` +
     `(${s.areaX} × ${s.areaY} modules) inside the perimeter.`;

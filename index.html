@@ -21,20 +21,16 @@
             <label>Modules X<input id="areaX" type="number" min="1" max="60" step="1" /></label>
             <label>Modules Y<input id="areaY" type="number" min="1" max="60" step="1" /></label>
           </div>
-          <label>or from your case (casefinity perimeter)<select id="case-preset"></select></label>
-          <div class="row3">
-            <label>Case length [mm]<input id="mmX" type="number" min="0" step="0.001" placeholder="inside" /></label>
-            <label>Case width [mm]<input id="mmY" type="number" min="0" step="0.001" placeholder="inside" /></label>
-            <button id="mm-to-modules" type="button" class="ghost">→ Modules</button>
+          <label>Case preset<select id="case-preset"></select></label>
+          <div class="row2">
+            <label>Case length [mm]<input id="caseLength" type="number" min="60" max="900" step="0.001" /></label>
+            <label>Case width [mm]<input id="caseWidth" type="number" min="60" max="900" step="0.001" /></label>
           </div>
           <div class="row2">
             <label>Side border modules<input id="sideBorderModules" type="number" min="0" max="10" step="1" /></label>
             <label>Front border modules<input id="frontBorderModules" type="number" min="0" max="10" step="1" /></label>
           </div>
-          <p class="hint" id="case-hint">
-            Inside dimensions of the case. Border modules must match the perimeter's “Side / Front border bins”
-            on casefinity.net (defaults 4 / 3).
-          </p>
+          <p class="hint" id="case-hint"></p>
           <p class="hint" id="area-hint"></p>
           <div class="row3">
             <label>Pitch P [mm]<input id="gridSpacing" type="number" min="10" max="50" step="0.5" /></label>
