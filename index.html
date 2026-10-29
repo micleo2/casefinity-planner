@@ -201,7 +201,26 @@
             <span class="hint" id="preview-status"></span>
           </div>
           <div id="case-view"></div>
-          <div id="preview" hidden></div>
+          <div class="section-bar off" id="section-bar" hidden>
+            <button type="button" id="sec-toggle" aria-pressed="false" title="Cut the bin open (S)">✂ Section</button>
+            <div class="seg" id="sec-axis" role="group" aria-label="Cut axis">
+              <button type="button" data-axis="x" aria-pressed="false" title="Cut across X — view from the side (X)">X</button>
+              <button type="button" data-axis="y" aria-pressed="true" title="Cut across Y — view from the front (Y)">Y</button>
+              <button type="button" data-axis="z" aria-pressed="false" title="Horizontal slice (Z)">Z</button>
+            </div>
+            <input type="range" id="sec-pos" step="0.1" aria-label="Cut position" />
+            <label class="inline sec-num"><input type="number" id="sec-pos-num" step="0.5" aria-label="Cut position in mm" /> mm</label>
+            <div class="seg" role="group" aria-label="Snap the cut">
+              <button type="button" id="sec-snap-center" title="Cut through the middle">Center</button>
+              <button type="button" id="sec-snap-rib" title="Cut through the next rib and socket">Rib</button>
+            </div>
+            <button type="button" id="sec-face" title="Turn the view to look straight at the cut (V)">⌖ Align view</button>
+            <button type="button" id="sec-flip" title="Keep the other half (F)">⇄ Flip</button>
+            <label class="check sec-ghost"><input type="checkbox" id="sec-ghost" checked /> Ghost</label>
+            <label class="check sec-items" title="Show the item(s) this bin was sized for"><input type="checkbox" id="show-items" checked /> Show item</label>
+          </div>
+          <div id="preview" tabindex="0" hidden></div>
+          <p class="hint section-readout" id="section-readout" hidden></p>
           <div class="table-wrap" id="fill-wrap">
             <table class="fill-table">
               <thead><tr><th>Bin</th><th>Items / space</th><th>Fill</th><th>Depth used</th></tr></thead>

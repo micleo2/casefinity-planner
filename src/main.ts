@@ -21,13 +21,16 @@ import { ItemsPage } from "./itemsPage.ts";
 import { AutoPackCard } from "./autopack.ts";
 import { PrintPage } from "./printPage.ts";
 import { insideHeight, insideVolume, placeInBin, sizeItem, solidVolume } from "./sizing.ts";
+import type { Solid } from "./sizing.ts";
 import type { CaseView } from "./caseView.ts";
+import type { Axis, BinView } from "./binView.ts";
 
 const cad = wrap<CadWorkerApi>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }));
 
 const STORAGE_KEY = "casefinity-planner/layout";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const fmt = (n: number) => n.toFixed(2);
+const fmt1 = (n: number) => n.toFixed(1);
 
 // ---- state -------------------------------------------------------------------
 
@@ -464,19 +467,23 @@ $("clear-layout").addEventListener("click", () => {
 
 // ---- 3D preview ------------------------------------------------------------------
 
-type ViewerInstance = InstanceType<typeof import("./vendor/casefinity/viewer.ts").Viewer>;
-let viewer: Promise<ViewerInstance | null> | undefined;
+let viewer: Promise<BinView | null> | undefined;
+/** The viewer once it exists, for the section toolbar's synchronous handlers. */
+let binView: BinView | null = null;
 let previewTimer: number | undefined;
 let previewSeq = 0;
 let lastPreviewKey = "";
 let lastFramedId = "";
+let lastMeshes: Awaited<ReturnType<CadWorkerApi["mesh"]>> = [];
 const previewStatus = $("preview-status");
 
-function getViewer(): Promise<ViewerInstance | null> {
-  viewer ??= import("./vendor/casefinity/viewer.ts").then(
-    ({ Viewer }) => {
+function getViewer(): Promise<BinView | null> {
+  viewer ??= import("./binView.ts").then(
+    ({ BinView }) => {
       try {
-        return new Viewer($("preview"));
+        binView = new BinView($("preview"));
+        syncSectionBar(binView);
+        return binView;
       } catch (err) {
         console.error(err);
         return null;
@@ -486,17 +493,31 @@ function getViewer(): Promise<ViewerInstance | null> {
   return viewer;
 }
 
+/** The selected bin's items, placed in the bin frame, for the preview. */
+function binSolids(bin: Bin): Solid[] {
+  const item = bin.itemId ? layout.items.find((it) => it.id === bin.itemId) : undefined;
+  if (!item) return [];
+  const sizing = sizeItem(item, layout.settings);
+  return (sizing.ok && placeInBin(item, sizing, bin, layout.settings)) || [];
+}
+
 function schedulePreview() {
   if (view !== "bin") return;
   const bin = selected();
+  renderSectionReadout(bin);
   const key = bin ? JSON.stringify([modelIdFor(bin.type), binParams(bin, layout.settings)]) : "";
-  if (key === lastPreviewKey) return;
+  if (key === lastPreviewKey) {
+    // Same CAD part: only the items (if any) may have changed
+    if (bin) void getViewer().then((v) => v?.update(lastMeshes, binSolids(bin)));
+    return;
+  }
   lastPreviewKey = key;
   clearTimeout(previewTimer);
   const seq = ++previewSeq;
   if (!bin) {
     previewStatus.textContent = "Select a bin to preview it.";
-    void getViewer().then((v) => v?.update([]));
+    lastMeshes = [];
+    void getViewer().then((v) => v?.update([], []));
     return;
   }
   previewStatus.textContent = "Building preview…";
@@ -511,16 +532,136 @@ function schedulePreview() {
       const t0 = performance.now();
       const meshes = await cad.mesh(modelIdFor(bin.type), binParams(bin, layout.settings));
       if (seq !== previewSeq) return; // superseded while building
-      v.update(meshes);
+      lastMeshes = meshes;
+      v.update(meshes, binSolids(bin));
       if (lastFramedId !== bin.id) {
         v.frame();
         lastFramedId = bin.id;
       }
+      syncSectionBar(v);
       previewStatus.textContent = `${bin.unitsX}×${bin.unitsY} ${BIN_TYPES.find((t) => t.value === bin.type)!.label.toLowerCase()} · built in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
     } catch (err) {
       if (seq === previewSeq) previewStatus.textContent = `Preview failed: ${err instanceof Error ? err.message : String(err)}`;
     }
   }, 350);
+}
+
+// ---- section tool ------------------------------------------------------------------
+
+const secToggle = $<HTMLButtonElement>("sec-toggle");
+const secPos = $<HTMLInputElement>("sec-pos");
+const secPosNum = $<HTMLInputElement>("sec-pos-num");
+const secGhost = $<HTMLInputElement>("sec-ghost");
+const secAxisButtons = [...document.querySelectorAll<HTMLButtonElement>("#sec-axis button")];
+const secRib = $<HTMLButtonElement>("sec-snap-rib");
+const showItems = $<HTMLInputElement>("show-items");
+
+/** Mirror the viewer's section state (and the bin's cut range) into the toolbar. */
+function syncSectionBar(v: BinView) {
+  const sec = v.section;
+  const [lo, hi] = v.range(sec.axis);
+  secToggle.setAttribute("aria-pressed", String(sec.enabled));
+  for (const b of secAxisButtons) b.setAttribute("aria-pressed", String(b.dataset.axis === sec.axis));
+  for (const input of [secPos, secPosNum]) {
+    input.min = lo.toFixed(1);
+    input.max = hi.toFixed(1);
+  }
+  secPos.value = String(sec.pos);
+  secPosNum.value = sec.pos.toFixed(1);
+  secGhost.checked = sec.ghost;
+  secRib.hidden = sec.axis === "z";
+  const bin = selected();
+  showItems.disabled = !bin || binSolids(bin).length === 0;
+  $("section-bar").classList.toggle("off", !sec.enabled);
+}
+
+/** Change the section; any change but switching it off turns it on. */
+function setSection(patch: Partial<BinView["section"]>) {
+  if (!binView) return;
+  binView.setSection({ enabled: true, ...patch });
+  syncSectionBar(binView);
+}
+
+secToggle.addEventListener("click", () => {
+  if (binView) setSection({ enabled: !binView.section.enabled });
+});
+for (const b of secAxisButtons) {
+  b.addEventListener("click", () => {
+    if (!binView) return;
+    const axis = b.dataset.axis as Axis;
+    if (axis === binView.section.axis) return setSection({});
+    // Start a new axis at its middle (Z: halfway up)
+    const [lo, hi] = binView.range(axis);
+    setSection({ axis, pos: (lo + hi) / 2 });
+  });
+}
+secPos.addEventListener("input", () => setSection({ pos: secPos.valueAsNumber }));
+secPosNum.addEventListener("change", () => {
+  if (Number.isFinite(secPosNum.valueAsNumber)) setSection({ pos: secPosNum.valueAsNumber });
+});
+$("sec-face").addEventListener("click", () => {
+  setSection({});
+  binView?.faceCut();
+});
+$("sec-flip").addEventListener("click", () => {
+  if (binView) setSection({ flipped: !binView.section.flipped });
+});
+secGhost.addEventListener("change", () => setSection({ ghost: secGhost.checked }));
+$("sec-snap-center").addEventListener("click", () => {
+  if (!binView) return;
+  const [lo, hi] = binView.range(binView.section.axis);
+  setSection({ pos: binView.section.axis === "z" ? (lo + hi) / 2 : 0 });
+});
+showItems.addEventListener("change", () => binView?.setShowItems(showItems.checked));
+// Steps through the grid-unit centres — each one cuts through a rib and its socket
+secRib.addEventListener("click", () => {
+  const bin = selected();
+  if (!bin || !binView || binView.section.axis === "z") return;
+  const n = binView.section.axis === "x" ? bin.unitsX : bin.unitsY;
+  const P = layout.settings.gridSpacing;
+  const centers = Array.from({ length: n }, (_, i) => (i - (n - 1) / 2) * P);
+  setSection({ pos: centers.find((c) => c > binView!.section.pos + 0.05) ?? centers[0] });
+});
+
+// Keys while the preview has focus; kept from the grid's own arrow / R handling.
+const SECTION_KEYS: Record<string, (shift: boolean) => void> = {
+  s: () => secToggle.click(),
+  x: () => secAxisButtons[0].click(),
+  y: () => secAxisButtons[1].click(),
+  z: () => secAxisButtons[2].click(),
+  f: () => $("sec-flip").click(),
+  v: () => $("sec-face").click(),
+  arrowup: (shift) => binView && setSection({ pos: binView.section.pos + (shift ? 5 : 1) }),
+  arrowright: (shift) => SECTION_KEYS.arrowup(shift),
+  arrowdown: (shift) => binView && setSection({ pos: binView.section.pos - (shift ? 5 : 1) }),
+  arrowleft: (shift) => SECTION_KEYS.arrowdown(shift),
+};
+$("preview").addEventListener("keydown", (e) => {
+  const action = SECTION_KEYS[e.key.toLowerCase()];
+  if (!action || e.ctrlKey || e.metaKey || e.altKey) return;
+  action(e.shiftKey);
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+/** Where the selected bin's items sit: floor, item top, and the gap to the rim. */
+function renderSectionReadout(bin: Bin | undefined) {
+  const out = $("section-readout");
+  const s = layout.settings;
+  const solids = bin ? binSolids(bin) : [];
+  if (!bin || !solids.length) {
+    out.textContent = bin ? `Floor ${fmt1(s.floorThick)} mm · rim ${fmt1(bin.height ?? s.overallHeight)} mm · no item assigned` : "";
+    out.classList.remove("warn");
+    return;
+  }
+  const rim = bin.height ?? s.overallHeight;
+  const top = Math.max(...solids.map((so) => so.cz + (so.kind === "box" ? so.sz : so.axis === "z" ? so.len : 2 * so.r) / 2));
+  const gap = rim - top;
+  const deep = gap > (rim - s.floorThick) / 2;
+  out.textContent =
+    `Floor ${fmt1(s.floorThick)} mm · item top ${fmt1(top)} mm · rim ${fmt1(rim)} mm · ` +
+    `gap to rim ${fmt1(gap)} mm` + (deep ? " ⚠ item sits deep — hard to reach" : "");
+  out.classList.toggle("warn", deep);
 }
 
 // ---- items page, auto-pack, pages --------------------------------------------------
@@ -585,6 +726,8 @@ function setView(next: View) {
   $("case-view").hidden = next !== "case";
   $("fill-wrap").hidden = next !== "case";
   $("preview").hidden = next !== "bin";
+  $("section-bar").hidden = next !== "bin";
+  $("section-readout").hidden = next !== "bin";
   lastPreviewKey = "";
 }
 $("view-case").addEventListener("click", () => { setView("case"); render(); });
