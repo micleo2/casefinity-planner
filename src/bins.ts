@@ -130,6 +130,9 @@ export function newBin(col: number, row: number, unitsX: number, unitsY: number)
   };
 }
 
+/** Auto-pack's filler bins: no item, titled "Spacer". */
+export const isSpacer = (b: Bin) => !b.itemId && b.title === "Spacer";
+
 /** casefinity's default BOTTOM_FILLET_FACTOR for double-sided bins. */
 export const DEFAULT_BOTTOM_FILLET = 2.3;
 

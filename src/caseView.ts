@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { isSpacer } from "./bins.ts";
 import type { Layout } from "./bins.ts";
 import { placeInBin, sizeItem } from "./sizing.ts";
 
@@ -93,7 +94,7 @@ export class CaseView {
 
     for (const bin of layout.bins) {
       const sel = bin.id === selectedId;
-      const color = sel ? SELECTED : bin.itemId || bin.title !== "Spacer" ? BIN : SPACER;
+      const color = sel ? SELECTED : isSpacer(bin) ? SPACER : BIN;
       const bw = bin.unitsX * P - 2 * s.clear;
       const bd = bin.unitsY * P - 2 * s.clear;
       const bh = bin.height ?? H;

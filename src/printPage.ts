@@ -2,7 +2,7 @@ import { strToU8, zipSync } from "fflate";
 import type { Zippable } from "fflate";
 import type { Remote } from "comlink";
 import type { CadWorkerApi } from "./worker.ts";
-import { binParams, fileStem, modelIdFor } from "./bins.ts";
+import { binParams, fileStem, isSpacer, modelIdFor } from "./bins.ts";
 import type { Bin, Layout } from "./bins.ts";
 import { serializeLayout } from "./layout.ts";
 import { binNumbers, planPlates } from "./plates.ts";
@@ -28,8 +28,6 @@ function svgEl(tag: string, attrs: Record<string, string | number>, text?: strin
   if (text !== undefined) node.textContent = text;
   return node;
 }
-
-const isSpacer = (b: Bin) => !b.itemId && b.title === "Spacer";
 
 export class PrintPage {
   private plan: PlatePlan = { plates: [], tooBig: [] };

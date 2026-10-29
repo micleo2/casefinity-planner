@@ -1,3 +1,4 @@
+import { isSpacer } from "./bins.ts";
 import type { Bin, Layout } from "./bins.ts";
 import { canPlace, fitsBed, inBounds } from "./layout.ts";
 import type { Rect } from "./layout.ts";
@@ -191,7 +192,7 @@ export class GridEditor {
       const h = b.unitsY * CELL;
       const isSel = b.id === selected;
       const bad = !inBounds(b, s) || !fitsBed(b, s);
-      const g = el("g", { class: `bin${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
+      const g = el("g", { class: `bin${isSpacer(b) ? " spacer" : ""}${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
       g.append(el("rect", { class: "body", x: x + 1.5, y: y + 1.5, width: w - 3, height: h - 3, rx: 3 }));
       const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);

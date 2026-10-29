@@ -91,6 +91,9 @@ summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-bottom: 
 #grid .area { fill: #fff; stroke: var(--grid-line); }
 #grid .bin { cursor: grab; }
 #grid .bin .body { fill: var(--bin-fill); stroke: var(--bin-stroke); stroke-width: 1.5; }
+/* Spacers look like they do on the Print page: grey, dashed, quieter text */
+#grid .bin.spacer .body { fill: #f1f2f4; stroke: #9ca3af; stroke-dasharray: 4 3; }
+#grid .bin.spacer text { fill: #6b7280; }
 #grid .bin.selected .body { fill: var(--bin-sel-fill); stroke: var(--accent); stroke-width: 2.5; }
 #grid .bin.invalid .body { fill: #fde2e2; stroke: var(--bad); }
 #grid .bin text { fill: #1e3a8a; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
