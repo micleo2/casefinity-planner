@@ -218,7 +218,7 @@ await pickPreset("Apache 4800");
 assert.equal(await area(), "26×18");
 await pickPreset("Apache 3800");
 assert.equal(await area(), "21×14");
-assert.match(await text("case-hint"), /= 21, .* = 14 grid units · case depth 110 mm/);
+assert.match(await text("case-hint"), /leaving 21 × 14 for bins\. Case depth 110 mm\./);
 await js(`(() => { const i = document.getElementById("sideBorderUnits"); i.value = "5"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); })()`);
 assert.equal(await area(), "20×14");
 // the 15-row reference layout no longer fits 14 rows: kept, but flagged

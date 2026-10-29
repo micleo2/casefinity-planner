@@ -347,14 +347,13 @@ function render() {
   const preset = CASE_PRESETS.find((p) => p.length === s.caseLength && p.width === s.caseWidth);
   const caseHint = $("case-hint");
   caseHint.textContent =
-    `floor(${s.caseLength} ÷ ${s.gridSpacing}) − ${s.sideBorderUnits} = ${cx}, ` +
-    `floor(${s.caseWidth} ÷ ${s.gridSpacing}) − ${s.frontBorderUnits} = ${cy} grid units` +
-    (preset ? ` · case depth ${preset.depth} mm` : "") +
-    ". The border settings must match the perimeter's “Side / Front border bins” on casefinity.net.";
+    `The case fits ${cx + s.sideBorderUnits} × ${cy + s.frontBorderUnits} grid units; ` +
+    `the border takes ${s.sideBorderUnits} × ${s.frontBorderUnits}, leaving ${cx} × ${cy} for bins.` +
+    (preset ? ` Case depth ${preset.depth} mm.` : "") +
+    " Use the same border values as your perimeter on casefinity.net.";
   caseHint.className = cx >= 1 && cy >= 1 && cx <= 60 && cy <= 60 ? "hint" : "hint bad";
   $("area-hint").textContent =
-    `Area: ${fmt(s.areaX * s.gridSpacing)} × ${fmt(s.areaY * s.gridSpacing)} mm ` +
-    `(${s.areaX} × ${s.areaY} grid units of 15 mm) inside the perimeter.`;
+    `Grid: ${s.areaX} × ${s.areaY} grid units = ${+(s.areaX * s.gridSpacing).toFixed(2)} × ${+(s.areaY * s.gridSpacing).toFixed(2)} mm.`;
   $("clear-hint").textContent =
     `Registration clearance per flank. Default 0.10 (socket = w + 2c = ${fmt(s.ribWidth + 2 * s.clear)}). ` +
     `Applies project-wide — parts with different c don't fit together.`;
