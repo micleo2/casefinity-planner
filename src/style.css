@@ -23,7 +23,6 @@
 body { margin: 0; background: var(--bg); padding: 24px 32px; }
 
 header h1 { margin: 0 0 6px; font-size: 28px; }
-.sub { margin: 0 0 20px; color: var(--muted); }
 
 #app { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 24px; align-items: start; }
 
@@ -139,7 +138,6 @@ footer a { color: var(--muted); }
 
 /* ---- steps ------------------------------------------------------------------ */
 header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 20px; }
-header .sub { margin-bottom: 0; }
 .steps { display: flex; gap: 8px; }
 .steps a {
   padding: 8px 16px; border-radius: 999px; border: 1px solid var(--input-border);
