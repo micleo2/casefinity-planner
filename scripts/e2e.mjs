@@ -290,12 +290,10 @@ const linked = await js(`JSON.parse(localStorage.getItem("casefinity-planner/lay
 assert.equal(linked, 6);
 console.log(`ok   auto-pack: ${optionTitles.length} layouts (${optionTitles.join(" / ")}), applied: ${(await bins()).length} bins, all checks pass`);
 
-// whole-case preview: a WebGL canvas and one fill row per item bin
+// whole-case preview: a WebGL canvas
 assert.equal(await js(`document.getElementById("view-case").getAttribute("aria-pressed")`), "true");
-await poll(() => js(`!!document.querySelector("#case-view canvas") && document.querySelectorAll("#fill-body tr").length === 6`), 30000);
-const fillRows = await js(`[...document.querySelectorAll("#fill-body tr")].map((r) => r.textContent)`);
-assert.ok(fillRows.every((r) => /\d+\.\d\d \/ \d+\.\d\d L\d+ %\d+ %/.test(r)), fillRows.join("\n"));
-console.log("ok   whole-case 3D preview renders with a fill table for 6 bins");
+await poll(() => js(`!!document.querySelector("#case-view canvas")`), 30000);
+console.log("ok   whole-case 3D preview renders");
 await sleep(500);
 const caseShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
 writeFileSync(join(out, "e2e-case.png"), Buffer.from(caseShot.result.data, "base64"));

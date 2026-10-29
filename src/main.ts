@@ -20,7 +20,7 @@ import { exportZip, groupParts } from "./export.ts";
 import { ItemsPage } from "./itemsPage.ts";
 import { AutoPackCard } from "./autopack.ts";
 import { PrintPage } from "./printPage.ts";
-import { insideHeight, insideVolume, placeInBin, sizeItem, solidVolume } from "./sizing.ts";
+import { placeInBin, sizeItem } from "./sizing.ts";
 import type { Solid } from "./sizing.ts";
 import type { CaseView } from "./caseView.ts";
 import type { Axis, BinView } from "./binView.ts";
@@ -407,7 +407,6 @@ function render() {
   if (page === "print") printPage.render();
   if (view === "case") {
     scheduleCase();
-    renderFillTable();
   } else {
     schedulePreview();
   }
@@ -744,7 +743,6 @@ function setView(next: View) {
   $("view-case").setAttribute("aria-pressed", String(next === "case"));
   $("view-bin").setAttribute("aria-pressed", String(next === "bin"));
   $("case-view").hidden = next !== "case";
-  $("fill-wrap").hidden = next !== "case";
   $("preview").hidden = next !== "bin";
   $("section-bar").hidden = next !== "bin";
   $("preview-keys-btn").hidden = next !== "bin";
@@ -776,51 +774,6 @@ function scheduleCase() {
     v.update(layout, selectedId);
     previewStatus.textContent = layout.bins.length ? "Drag to orbit · scroll to zoom" : "No bins yet.";
   });
-}
-
-/** How much of each item bin its items fill, by volume and by depth. */
-function renderFillTable() {
-  const s = layout.settings;
-  const items = new Map(layout.items.map((it) => [it.id, it]));
-  const rows: HTMLTableRowElement[] = [];
-  for (const bin of layout.bins) {
-    const item = bin.itemId ? items.get(bin.itemId) : undefined;
-    if (!item) continue;
-    const sizing = sizeItem(item, s);
-    const solids = sizing.ok ? placeInBin(item, sizing, bin, s) : null;
-    const tr = document.createElement("tr");
-    tr.className = bin.id === selectedId ? "selected" : "";
-    const name = document.createElement("button");
-    name.type = "button";
-    name.className = "linklike";
-    name.textContent = `${bin.title || item.name || "Item"} · ${bin.unitsX}×${bin.unitsY}`;
-    name.addEventListener("click", () => select(bin.id));
-    const cells: (string | Node)[] = [name];
-    if (!solids || !sizing.ok) {
-      cells.push("doesn't fit", "—", "—");
-    } else {
-      const vol = solids.reduce((a, so) => a + solidVolume(so), 0);
-      const space = insideVolume(bin, s);
-      const pct = Math.round((vol / space) * 100);
-      const bar = document.createElement("span");
-      bar.className = "fill-bar";
-      const inner = document.createElement("span");
-      inner.style.width = `${Math.min(100, pct)}%`;
-      bar.append(inner);
-      const fill = document.createDocumentFragment();
-      fill.append(bar, `${pct} %`);
-      const depth = Math.round((sizing.pose.z / insideHeight(s, bin.height ?? s.overallHeight)) * 100);
-      cells.push(`${(vol / 1e6).toFixed(2)} / ${(space / 1e6).toFixed(2)} L`, fill, `${depth} %`);
-    }
-    for (const c of cells) {
-      const td = document.createElement("td");
-      td.append(c);
-      tr.append(td);
-    }
-    rows.push(tr);
-  }
-  $("fill-body").replaceChildren(...rows);
-  $("fill-wrap").hidden = rows.length === 0;
 }
 
 // ---- start -----------------------------------------------------------------------

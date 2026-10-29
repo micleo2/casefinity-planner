@@ -24,8 +24,7 @@ npm run build      # static site in dist/ — host anywhere
   against the real CAD model in `npm run smoke`. *Play around items* (default 1 mm) is added to each footprint.
 - **2 Pack → Auto-pack** — finds up to three transport-safe layouts (full columns or full rows), filling spare
   grid units by growing bins or with spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
-- **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D, plus a table of how
-  full each bin is by volume and by depth. *Selected bin* shows the real CAD model of one bin.
+- **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D. *Selected bin* shows the real CAD model of one bin.
 - **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), numbered to
   match a **case map** you can print and tape inside the lid. *Export ZIP* gives one 3MF per plate with every
   body in place, a 3MF of lids for each bin that has them, the case map as SVG, and `layout.json`.

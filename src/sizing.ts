@@ -226,12 +226,3 @@ export function placeInBin(item: Item, sizing: Sizing, bin: Bin, s: Settings): S
   }
   return null;
 }
-
-export function solidVolume(sol: Solid): number {
-  return sol.kind === "box" ? sol.sx * sol.sy * sol.sz : Math.PI * sol.r * sol.r * sol.len;
-}
-
-/** Bin's usable inside volume, mm³. */
-export function insideVolume(bin: Bin, s: Settings): number {
-  return insideWidth(bin.unitsX, s) * insideWidth(bin.unitsY, s) * insideHeight(s, bin.height ?? s.overallHeight);
-}
