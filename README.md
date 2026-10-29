@@ -25,9 +25,9 @@ npm run build      # static site in dist/ — host anywhere
 - **2 Pack → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
   keep their snug size and spare grid units become spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D. *Selected bin* shows the real CAD model of one bin.
-- **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), numbered to
-  match a **case map** you can print and tape inside the lid. *Export ZIP* gives one 3MF per plate with every
-  body in place, a 3MF of lids for each bin that has them, the case map as SVG, and `layout.json`.
+- **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), each part
+  numbered. *Export ZIP* gives one 3MF per plate with every body in place, a 3MF of lids for each bin that has
+  them, and `layout.json`.
 - **Area** — the perimeter cavity in grid units (15 mm squares). *Case preset* starts on `--Custom--` with casefinity's default
   perimeter (350 × 250 mm → 19 × 13); pick Apache 3800 (→ 21 × 14) or Apache 4800 (→ 26 × 18), or type your case's
   inside length/width. Grid units follow casefinity's perimeter formula `floor(mm ÷ P) − border units`; the border
@@ -53,7 +53,7 @@ src/
   layout.ts    placement rules, checks, layout (de)serialization — pure, tested in Node
   sizing.ts    item → smallest bin, and where items sit inside a bin — pure
   pack.ts      auto-pack into full columns / rows — pure
-  plates.ts    print plan: case-map numbers, bins → bed plates — pure
+  plates.ts    print plan: part numbers, bins → bed plates — pure
   plateExport.ts   one plate's bodies placed on the bed, as 3MF (worker and tests share it)
   itemsPage.ts, autopack.ts, caseView.ts, printPage.ts   the Items page, Auto-pack card, whole-case 3D view, Print page
   grid.ts      SVG grid editor

@@ -307,13 +307,11 @@ const itemsShot = await send("Page.captureScreenshot", { format: "png", captureB
 writeFileSync(join(out, "e2e-items.png"), Buffer.from(itemsShot.result.data, "base64"));
 console.log("ok   items survive a reload");
 
-// --- print plan: plates, plate export, case map --------------------------------------
+// --- print plan: plates, plate export ----------------------------------------------
 await js(`location.hash = "#print"`);
 await poll(() => js(`!document.getElementById("print-page").hidden && document.querySelectorAll("#plates .plate-card").length > 0`));
 const plateCount = await js(`document.querySelectorAll("#plates .plate-card").length`);
 const binCount = (await bins()).length;
-assert.equal(await js(`document.querySelectorAll("#case-legend li").length`), binCount);
-assert.equal(await js(`document.querySelectorAll("#case-map .map-num").length`), binCount);
 const platedParts = await js(`[...document.querySelectorAll("#plates .part-num")].map((t) => +t.textContent).sort((a, b) => a - b)`);
 assert.deepEqual(platedParts, Array.from({ length: binCount }, (_, i) => i + 1), "every bin on exactly one plate");
 await poll(() => js(`!document.getElementById("export-plates").disabled`));
@@ -334,21 +332,12 @@ for (const n of plateFiles) {
 }
 const objectsTotal = plateFiles.reduce((a, n) => a + (strFromU8(unzipSync(plateZip[n])["3D/3dmodel.model"]).match(/<object /g) ?? []).length, 0);
 assert.equal(objectsTotal, binCount, "one 3MF object per bin across the plates");
-assert.ok(plateZip["case-map.svg"] && plateZip["layout.json"]);
-console.log(`ok   print plan: ${plateCount} plate(s), ${binCount} parts; ${plateStatus} ZIP: ${plateFiles.length} plate 3MF + case map`);
+assert.ok(plateZip["layout.json"] && !plateZip["case-map.svg"]);
+console.log(`ok   print plan: ${plateCount} plate(s), ${binCount} parts; ${plateStatus} ZIP: ${plateFiles.length} plate 3MF`);
 
 await js(`window.scrollTo(0, 0)`);
 const printShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
 writeFileSync(join(out, "e2e-print.png"), Buffer.from(printShot.result.data, "base64"));
-await send("Emulation.setEmulatedMedia", { media: "print" });
-assert.equal(await js(`getComputedStyle(document.querySelector(".plates-card")).display`), "none");
-assert.equal(await js(`getComputedStyle(document.getElementById("parts-card")).display`), "none");
-assert.equal(await js(`getComputedStyle(document.querySelector("header")).display`), "none");
-assert.notEqual(await js(`getComputedStyle(document.getElementById("case-map-card")).display`), "none");
-const mapShot = await send("Page.captureScreenshot", { format: "png" });
-writeFileSync(join(out, "e2e-print-media.png"), Buffer.from(mapShot.result.data, "base64"));
-await send("Emulation.setEmulatedMedia", { media: "" });
-console.log("ok   print stylesheet shows only the case map");
 
 assert.deepEqual(errors, [], `page errors:\n${errors.join("\n")}`);
 console.log(`\nall e2e checks passed — artifacts in ${out}`);

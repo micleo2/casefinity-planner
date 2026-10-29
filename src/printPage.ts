@@ -10,7 +10,7 @@ import type { PlatePlan } from "./plates.ts";
 
 /**
  * The Print page: bins arranged onto print-bed plates (one 3MF per plate in
- * the export), and a numbered case map to tape inside the lid.
+ * the export).
  */
 
 export interface PrintHooks {
@@ -39,7 +39,6 @@ export class PrintPage {
     this.status = root.querySelector("#plates-status")!;
     this.exportButton = root.querySelector("#export-plates")!;
     this.exportButton.addEventListener("click", () => void this.exportPlates());
-    root.querySelector("#print-map")!.addEventListener("click", () => window.print());
   }
 
   render() {
@@ -87,36 +86,6 @@ export class PrintPage {
     }
     plates.replaceChildren(...notes, ...cards);
     this.exportButton.disabled = !this.hooks.kernelReady() || this.exporting || this.plan.plates.length === 0;
-
-    this.renderCaseMap(layout, nums);
-  }
-
-  private renderCaseMap(layout: Layout, nums: Map<string, number>) {
-    const { areaX, areaY } = layout.settings;
-    const cell = 16;
-    const svg = this.root.querySelector<SVGSVGElement>("#case-map")!;
-    svg.setAttribute("viewBox", `-1 -1 ${areaX * cell + 2} ${areaY * cell + 2}`);
-    svg.replaceChildren(svgEl("rect", { x: 0, y: 0, width: areaX * cell, height: areaY * cell, class: "map-area" }));
-    for (const b of layout.bins) {
-      svg.append(svgEl("rect", {
-        x: b.col * cell, y: b.row * cell, width: b.unitsX * cell, height: b.unitsY * cell,
-        class: isSpacer(b) ? "map-bin spacer" : "map-bin",
-      }));
-      const label = svgEl("text", { x: (b.col + b.unitsX / 2) * cell, y: (b.row + b.unitsY / 2) * cell, class: "map-num" }, String(nums.get(b.id)));
-      label.style.fontSize = `${Math.min(15, Math.max(8, Math.min(b.unitsX, b.unitsY) * cell * 0.5))}px`;
-      svg.append(label);
-    }
-    const plateOf = new Map<string, number>();
-    this.plan.plates.forEach((p, i) => p.parts.forEach((part) => plateOf.set(part.binId, i + 1)));
-    const legend = this.root.querySelector("#case-legend")!;
-    const ordered = [...layout.bins].sort((a, b) => nums.get(a.id)! - nums.get(b.id)!);
-    legend.replaceChildren(...ordered.map((b) => {
-      const li = document.createElement("li");
-      li.value = nums.get(b.id)!;
-      const plate = plateOf.get(b.id);
-      li.textContent = `${b.title || "Bin"} · ${b.unitsX} × ${b.unitsY}` + (plate ? ` · plate ${plate}` : "");
-      return li;
-    }));
   }
 
   private async exportPlates() {
@@ -138,8 +107,6 @@ export class PrintPage {
         files[`plates/plate-${i + 1}.3mf`] = [bytes, { level: 0 }];
         for (const x of extras) files[`lids/${x.name}.3mf`] = [x.bytes, { level: 0 }];
       }
-      const map = this.root.querySelector<SVGSVGElement>("#case-map")!;
-      files["case-map.svg"] = strToU8(caseMapSvg(map, this.root.querySelector("#case-legend")!));
       files["layout.json"] = strToU8(serializeLayout(layout));
       this.hooks.download(zipSync(files) as Uint8Array<ArrayBuffer>, "casefinity-plates.zip", "application/zip");
       this.status.textContent = `Exported ${this.plan.plates.length} plate(s) in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
@@ -151,19 +118,4 @@ export class PrintPage {
       this.render();
     }
   }
-}
-
-/** A standalone SVG of the case map with its legend, for the ZIP. */
-function caseMapSvg(map: SVGSVGElement, legend: Element): string {
-  const [, , w, h] = map.getAttribute("viewBox")!.split(" ").map(Number);
-  const lines = [...legend.querySelectorAll("li")].map((li) => `${(li as HTMLLIElement).value}. ${li.textContent}`);
-  const lineH = 14;
-  const height = h + 16 + lines.length * lineH;
-  const esc = (t: string) => t.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!);
-  return `<svg xmlns="${SVG_NS}" viewBox="-1 -1 ${w} ${height}" font-family="sans-serif">` +
-    `<style>.map-area{fill:#fff;stroke:#9ca3af}.map-bin{fill:#dbe4fb;stroke:#3b6fe0}.map-bin.spacer{fill:#f1f2f4;stroke:#9ca3af}` +
-    `.map-num{fill:#1f2937;font-weight:700;text-anchor:middle;dominant-baseline:middle}</style>` +
-    map.innerHTML +
-    lines.map((l, i) => `<text x="0" y="${h + 16 + i * lineH}" font-size="11" fill="#1f2937">${esc(l)}</text>`).join("") +
-    `</svg>`;
 }

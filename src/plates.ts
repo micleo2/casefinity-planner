@@ -1,7 +1,7 @@
 import type { Bin, Settings } from "./bins.ts";
 
 /**
- * Print plan: number the bins for the case map and arrange them onto print-bed
+ * Print plan: number the bins and arrange them onto print-bed
  * plates. Parts print standing, open side up, so each takes its footprint
  * including the ribs (n·P − 2c + rib depth on each axis), turned 90° on the bed
  * when that fits better. Free-rectangle (guillotine) packing, largest first.
@@ -31,7 +31,7 @@ export interface PlatePlan {
   tooBig: string[];
 }
 
-/** Case-map numbers: back row first, left to right. */
+/** Part numbers: back row first, left to right. */
 export function binNumbers(bins: Bin[]): Map<string, number> {
   const order = [...bins].sort((a, b) => a.row - b.row || a.col - b.col);
   return new Map(order.map((b, i) => [b.id, i + 1]));

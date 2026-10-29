@@ -223,18 +223,3 @@ svg.plate .bed { fill: #eef0f3; stroke: #c7cdd6; stroke-width: 1; }
 svg.plate .part { fill: var(--bin-fill); stroke: var(--bin-stroke); stroke-width: 1.5; }
 svg.plate .part.spacer { fill: #f1f2f4; stroke: #9ca3af; stroke-dasharray: 4 3; }
 svg.plate .part-num { fill: #1f2937; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
-#case-map { width: 100%; height: auto; display: block; margin: 4px 0 10px; }
-#case-map .map-area { fill: #fff; stroke: #9ca3af; }
-#case-map .map-bin { fill: var(--bin-fill); stroke: var(--bin-stroke); stroke-width: 1; }
-#case-map .map-bin.spacer { fill: #f1f2f4; stroke: #9ca3af; }
-#case-map .map-num { fill: #1f2937; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
-.case-legend { margin: 0; padding-left: 26px; font-size: 14px; line-height: 1.7; }
-
-/* "Print case map" prints only the map and its legend */
-@media print {
-  body { background: #fff; padding: 0; }
-  header, footer, #items-page, #app, .plates-card, #parts-card { display: none !important; }
-  #print-page { display: block !important; }
-  #case-map-card { border: 0; padding: 0; }
-  .print-aside { max-width: none; }
-}
