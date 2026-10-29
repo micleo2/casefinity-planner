@@ -64,6 +64,14 @@
         <p class="hint" id="plates-status"></p>
       </section>
       <aside class="print-aside">
+        <section class="card" id="parts-card">
+          <h2>Individual parts</h2>
+          <p class="hint">One file per unique bin, to slice or edit yourself.</p>
+          <label class="check"><input id="export-step" type="checkbox" checked /> STEP in addition to STL</label>
+          <label class="check"><input id="export-3mf" type="checkbox" /> 3MF in addition to STL</label>
+          <button id="export" type="button" disabled>Export as ZIP</button>
+          <p class="hint parts-status" id="status">Loading CAD kernel…</p>
+        </section>
         <section class="card" id="case-map-card">
           <h2>Case map</h2>
           <p class="hint">Tape it inside the lid. Top = back of the case.</p>
@@ -166,25 +174,19 @@
           </div>
         </section>
 
-        <section class="card">
-          <h2>Export</h2>
-          <label class="check"><input id="export-step" type="checkbox" checked /> STEP in addition to STL</label>
-          <label class="check"><input id="export-3mf" type="checkbox" /> 3MF in addition to STL</label>
-          <button id="export" type="button" class="primary" disabled>Export as ZIP</button>
-          <p class="hint" id="status">Loading CAD kernel…</p>
-          <div class="buttons">
-            <button id="save-layout" type="button">Save layout</button>
-            <button id="load-layout" type="button">Load layout</button>
-            <button id="clear-layout" type="button" class="ghost">Clear</button>
-          </div>
-          <input id="load-file" type="file" accept=".json,application/json" hidden />
-        </section>
       </aside>
 
       <main>
         <section class="card grid-card">
           <div class="card-head">
             <h2>Layout</h2>
+            <span class="hint head-status" id="layout-status"></span>
+            <div class="head-tools">
+              <button id="save-layout" type="button" title="Download the layout and items as a .json file">Save</button>
+              <button id="load-layout" type="button" title="Open a saved layout .json file">Load</button>
+              <button id="clear-layout" type="button" class="ghost" title="Remove all bins">Clear</button>
+            </div>
+            <input id="load-file" type="file" accept=".json,application/json" hidden />
             <button type="button" class="keys-btn" popovertarget="keys" title="Keyboard shortcuts (?)" aria-label="Layout keyboard shortcuts">?</button>
           </div>
           <svg id="grid" role="application" aria-label="Bin layout grid"></svg>

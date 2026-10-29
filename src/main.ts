@@ -417,6 +417,7 @@ function render() {
 let kernelReady = false;
 let exporting = false;
 const status = $("status");
+const layoutStatus = $("layout-status");
 
 function download(data: BlobPart, name: string, type: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -466,9 +467,11 @@ loadFile.addEventListener("change", async () => {
     syncBinInputs();
     itemsPage.rebuild();
     update(true);
-    status.textContent = `Loaded ${file.name} (${layout.bins.length} bins).`;
+    layoutStatus.textContent = `Loaded ${file.name} (${layout.bins.length} bins).`;
+    layoutStatus.className = "hint head-status";
   } catch (err) {
-    status.textContent = `Couldn't load ${file.name}: ${err instanceof Error ? err.message : String(err)}`;
+    layoutStatus.className = "hint head-status bad";
+    layoutStatus.textContent = `Couldn't load ${file.name}: ${err instanceof Error ? err.message : String(err)}`;
   }
 });
 

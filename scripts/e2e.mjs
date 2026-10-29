@@ -338,6 +338,7 @@ const printShot = await send("Page.captureScreenshot", { format: "png", captureB
 writeFileSync(join(out, "e2e-print.png"), Buffer.from(printShot.result.data, "base64"));
 await send("Emulation.setEmulatedMedia", { media: "print" });
 assert.equal(await js(`getComputedStyle(document.querySelector(".plates-card")).display`), "none");
+assert.equal(await js(`getComputedStyle(document.getElementById("parts-card")).display`), "none");
 assert.equal(await js(`getComputedStyle(document.querySelector("header")).display`), "none");
 assert.notEqual(await js(`getComputedStyle(document.getElementById("case-map-card")).display`), "none");
 const mapShot = await send("Page.captureScreenshot", { format: "png" });
