@@ -187,11 +187,45 @@
       </aside>
 
       <main>
-        <section class="card grid-card"><svg id="grid" role="application" aria-label="Bin layout grid"></svg></section>
-        <p class="legend">
-          Top of the grid is the back (+Y) of the case. Keys: R rotate · Del delete · arrows move · Esc deselect · Ctrl+Z / Ctrl+Shift+Z undo / redo
-        </p>
+        <section class="card grid-card">
+          <div class="card-head">
+            <h2>Layout</h2>
+            <button type="button" class="keys-btn" popovertarget="keys" title="Keyboard shortcuts (?)" aria-label="Layout keyboard shortcuts">?</button>
+          </div>
+          <svg id="grid" role="application" aria-label="Bin layout grid"></svg>
+        </section>
+        <div id="keys" popover class="keys-pop">
+          <h2>Layout shortcuts</h2>
+          <table>
+            <tbody>
+              <tr><th colspan="2">With a bin selected</th></tr>
+              <tr><td><kbd>R</kbd></td><td>Rotate</td></tr>
+              <tr><td><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></td><td>Move one grid unit</td></tr>
+              <tr><td><kbd>Del</kbd></td><td>Delete</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Deselect</td></tr>
+              <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd></td><td>Undo</td></tr>
+              <tr><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></td><td>Redo</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="preview-keys" popover class="keys-pop">
+          <h2>Preview shortcuts</h2>
+          <table>
+            <tbody>
+              <tr><th colspan="2">Selected bin — click the preview first</th></tr>
+              <tr><td><kbd>S</kbd></td><td>Section on / off</td></tr>
+              <tr><td><kbd>X</kbd> <kbd>Y</kbd> <kbd>Z</kbd></td><td>Cut axis</td></tr>
+              <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Move the cut 1 mm (<kbd>Shift</kbd> 5 mm)</td></tr>
+              <tr><td><kbd>V</kbd></td><td>Align view to the cut</td></tr>
+              <tr><td><kbd>F</kbd></td><td>Flip</td></tr>
+            </tbody>
+          </table>
+        </div>
         <section class="card preview-card">
+          <div class="card-head">
+            <h2>Preview</h2>
+            <button type="button" class="keys-btn" id="preview-keys-btn" popovertarget="preview-keys" title="Keyboard shortcuts (?)" aria-label="Preview keyboard shortcuts" hidden>?</button>
+          </div>
           <div class="preview-head">
             <div class="seg" role="group" aria-label="Preview">
               <button type="button" id="view-case" aria-pressed="true">Whole case</button>

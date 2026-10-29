@@ -302,6 +302,12 @@ const grid = new GridEditor($("grid") as unknown as SVGSVGElement, {
 document.addEventListener("keydown", (e) => {
   const t = e.target as HTMLElement;
   if (t.closest("input, select, textarea") || page !== "pack") return;
+  if (e.key === "?") {
+    e.preventDefault();
+    $("keys").togglePopover();
+    return;
+  }
+  if (document.querySelector(":popover-open")) return; // Esc closes it, nothing else
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === "z") {
     e.preventDefault();
@@ -631,6 +637,7 @@ const SECTION_KEYS: Record<string, (shift: boolean) => void> = {
   z: () => secAxisButtons[2].click(),
   f: () => $("sec-flip").click(),
   v: () => $("sec-face").click(),
+  "?": () => $("preview-keys").togglePopover(),
   arrowup: (shift) => binView && setSection({ pos: binView.section.pos + (shift ? 5 : 1) }),
   arrowright: (shift) => SECTION_KEYS.arrowup(shift),
   arrowdown: (shift) => binView && setSection({ pos: binView.section.pos - (shift ? 5 : 1) }),
@@ -727,6 +734,7 @@ function setView(next: View) {
   $("fill-wrap").hidden = next !== "case";
   $("preview").hidden = next !== "bin";
   $("section-bar").hidden = next !== "bin";
+  $("preview-keys-btn").hidden = next !== "bin";
   $("section-readout").hidden = next !== "bin";
   lastPreviewKey = "";
 }
