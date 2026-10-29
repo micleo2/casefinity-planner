@@ -394,12 +394,14 @@ function render() {
   );
   $("checks").hidden = problems.length === 0;
 
-  const parts = groupParts(layout);
+  // The parts export follows the Print page's selection
+  const toPrint = printLayout();
+  const parts = groupParts(toPrint);
   const exportBtn = $<HTMLButtonElement>("export");
-  exportBtn.textContent = layout.bins.length
-    ? `Export ${layout.bins.length} bin(s) as ZIP` + (parts.length < layout.bins.length ? ` (${parts.length} unique)` : "")
+  exportBtn.textContent = toPrint.bins.length
+    ? `Export ${toPrint.bins.length} bin(s) as ZIP` + (parts.length < toPrint.bins.length ? ` (${parts.length} unique)` : "")
     : "Export as ZIP";
-  exportBtn.disabled = !kernelReady || exporting || layout.bins.length === 0;
+  exportBtn.disabled = !kernelReady || exporting || toPrint.bins.length === 0;
 
   grid.render();
   itemsPage.refresh();
@@ -418,6 +420,11 @@ let kernelReady = false;
 let exporting = false;
 const status = $("status");
 const layoutStatus = $("layout-status");
+
+/** The layout narrowed to the bins ticked on the Print page. */
+function printLayout(): Layout {
+  return { ...layout, bins: printPage.selectedBins() };
+}
 
 function download(data: BlobPart, name: string, type: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -438,7 +445,7 @@ $("export").addEventListener("click", async () => {
   try {
     const zip = await exportZip(cad, layout, formats, (done, total) => {
       status.textContent = `Building part ${Math.min(done + 1, total)} of ${total}…`;
-    });
+    }, printPage.selectedBins());
     download(zip as Uint8Array<ArrayBuffer>, "casefinity-bins.zip", "application/zip");
     status.textContent = `Exported in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
   } catch (err) {
@@ -711,6 +718,7 @@ const printPage = new PrintPage($("print-page"), {
   cad,
   kernelReady: () => kernelReady,
   download,
+  selectionChanged: () => render(),
 });
 
 const PAGES = ["items", "pack", "print"] as const;

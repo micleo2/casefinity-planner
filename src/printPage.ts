@@ -18,6 +18,8 @@ export interface PrintHooks {
   cad: Remote<CadWorkerApi>;
   kernelReady(): boolean;
   download(data: BlobPart, name: string, type: string): void;
+  /** The print selection changed (the parts export follows it too). */
+  selectionChanged(): void;
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -31,6 +33,10 @@ function svgEl(tag: string, attrs: Record<string, string | number>, text?: strin
 
 export class PrintPage {
   private plan: PlatePlan = { plates: [], tooBig: [] };
+  /** Bins left out of printing. New bins start selected. */
+  private excluded = new Set<string>();
+  /** What the picker list was built from; ticking only updates it in place. */
+  private pickerKey = "";
   private exporting = false;
   private status: HTMLElement;
   private exportButton: HTMLButtonElement;
@@ -39,17 +45,33 @@ export class PrintPage {
     this.status = root.querySelector("#plates-status")!;
     this.exportButton = root.querySelector("#export-plates")!;
     this.exportButton.addEventListener("click", () => void this.exportPlates());
+    root.querySelector("#pick-all")!.addEventListener("click", () => this.setExcluded([]));
+    root.querySelector("#pick-none")!.addEventListener("click", () => this.setExcluded(this.hooks.layout().bins.map((b) => b.id)));
+  }
+
+  /** The bins ticked for printing, in layout order. */
+  selectedBins(): Bin[] {
+    return this.hooks.layout().bins.filter((b) => !this.excluded.has(b.id));
+  }
+
+  private setExcluded(ids: Iterable<string>) {
+    this.excluded = new Set(ids);
+    this.hooks.selectionChanged();
   }
 
   render() {
     const layout = this.hooks.layout();
     const s = layout.settings;
-    this.plan = planPlates(layout.bins, s);
     const bins = new Map(layout.bins.map((b) => [b.id, b]));
+    for (const id of this.excluded) if (!bins.has(id)) this.excluded.delete(id);
     const nums = binNumbers(layout.bins);
+    const selected = this.selectedBins();
+    this.plan = planPlates(selected, s, { nums });
+    this.renderPicker(layout.bins, nums);
 
-    this.root.querySelector("#plates-title")!.textContent = layout.bins.length
-      ? `${this.plan.plates.length} plate${this.plan.plates.length === 1 ? "" : "s"} on a ${s.bedX} × ${s.bedY} mm bed`
+    const n = this.plan.plates.length;
+    this.root.querySelector("#plates-title")!.textContent = selected.length
+      ? `${n} plate${n === 1 ? "" : "s"} for ${selected.length} of ${layout.bins.length} bins · ${s.bedX} × ${s.bedY} mm bed`
       : "Plates";
     this.root.querySelector("#plates-note")!.textContent = "Footprints include the ribs; parts print standing, open side up.";
 
@@ -77,6 +99,8 @@ export class PrintPage {
     const notes: HTMLElement[] = [];
     if (!layout.bins.length) {
       notes.push(Object.assign(document.createElement("p"), { className: "hint", textContent: "No bins yet — add items and auto-pack, or draw bins on the Pack page." }));
+    } else if (!selected.length) {
+      notes.push(Object.assign(document.createElement("p"), { className: "hint", textContent: "No bins selected — tick the ones to print under Bins to print." }));
     }
     if (this.plan.tooBig.length) {
       notes.push(Object.assign(document.createElement("p"), {
@@ -86,6 +110,37 @@ export class PrintPage {
     }
     plates.replaceChildren(...notes, ...cards);
     this.exportButton.disabled = !this.hooks.kernelReady() || this.exporting || this.plan.plates.length === 0;
+  }
+
+  /** One checkbox per bin, by part number. */
+  private renderPicker(all: Bin[], nums: Map<string, number>) {
+    const list = this.root.querySelector("#pick-list")!;
+    const key = JSON.stringify(all.map((b) => [b.id, nums.get(b.id), b.title, b.unitsX, b.unitsY, isSpacer(b)]));
+    if (key === this.pickerKey) {
+      for (const box of list.querySelectorAll<HTMLInputElement>("input")) box.checked = !this.excluded.has(box.value);
+      return;
+    }
+    this.pickerKey = key;
+    const rows = [...all].sort((a, b) => nums.get(a.id)! - nums.get(b.id)!).map((b) => {
+      const box = Object.assign(document.createElement("input"), { type: "checkbox", value: b.id, checked: !this.excluded.has(b.id) });
+      box.addEventListener("change", () => {
+        const next = new Set(this.excluded);
+        if (box.checked) next.delete(b.id);
+        else next.add(b.id);
+        this.setExcluded(next);
+      });
+      const row = document.createElement("label");
+      row.className = isSpacer(b) ? "check spacer" : "check";
+      row.append(
+        box,
+        Object.assign(document.createElement("span"), { className: "pick-num", textContent: `#${nums.get(b.id)}` }),
+        b.title || "Bin",
+        Object.assign(document.createElement("span"), { className: "pick-size", textContent: `${b.unitsX} × ${b.unitsY}` }),
+      );
+      return row;
+    });
+    list.replaceChildren(...rows);
+    for (const id of ["pick-all", "pick-none"]) this.root.querySelector<HTMLButtonElement>(`#${id}`)!.disabled = !all.length;
   }
 
   private async exportPlates() {

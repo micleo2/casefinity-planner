@@ -49,8 +49,12 @@ interface Free {
   h: number;
 }
 
-export function planPlates(bins: Bin[], s: Settings, { margin = 5, gap = 5 } = {}): PlatePlan {
-  const nums = binNumbers(bins);
+/** Plates for `bins` (any subset of the layout); `nums` keeps the whole layout's part numbers. */
+export function planPlates(
+  bins: Bin[],
+  s: Settings,
+  { margin = 5, gap = 5, nums = binNumbers(bins) }: { margin?: number; gap?: number; nums?: Map<string, number> } = {},
+): PlatePlan {
   // Each part claims its footprint plus one gap; the usable bed gains one gap back.
   const W = s.bedX - 2 * margin + gap;
   const H = s.bedY - 2 * margin + gap;

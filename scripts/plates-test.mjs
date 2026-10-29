@@ -1,4 +1,4 @@
-// Node tests for the print plan (src/plates.ts): case-map numbering and bed packing.
+// Node tests for the print plan (src/plates.ts): part numbering and bed packing.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
@@ -32,7 +32,18 @@ function assertPlan(bins, settings, plan, { margin = 5, gap = 5 } = {}) {
   for (const b of bins) assert.ok(seen.has(b.id) || plan.tooBig.includes(b.id), `${b.id} planned`);
 }
 
-test("case-map numbers run back row first, left to right", () => {
+test("a selection of bins packs alone and keeps the whole layout's part numbers", () => {
+  const nums = binNumbers(reference.bins);
+  const some = reference.bins.filter((_, i) => i % 3 === 0);
+  const plan = planPlates(some, reference.settings, { nums });
+  assertPlan(some, reference.settings, plan);
+  const placed = plan.plates.flatMap((p) => p.parts);
+  assert.equal(placed.length, some.length);
+  for (const p of placed) assert.equal(p.num, nums.get(p.binId));
+  assert.ok(plan.plates.length <= planPlates(reference.bins, reference.settings).plates.length);
+});
+
+test("part numbers run back row first, left to right", () => {
   const nums = binNumbers(reference.bins);
   const byNum = [...nums.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => reference.bins.find((b) => b.id === id));
   for (let i = 1; i < byNum.length; i++) {

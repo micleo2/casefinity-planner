@@ -335,6 +335,19 @@ assert.equal(objectsTotal, binCount, "one 3MF object per bin across the plates")
 assert.ok(plateZip["layout.json"] && !plateZip["case-map.svg"]);
 console.log(`ok   print plan: ${plateCount} plate(s), ${binCount} parts; ${plateStatus} ZIP: ${plateFiles.length} plate 3MF`);
 
+// selecting bins: plates and the parts export follow the ticks
+assert.equal(await js(`document.querySelectorAll("#pick-list input:checked").length`), binCount);
+await js(`document.getElementById("pick-none").click()`);
+assert.equal(await js(`document.querySelectorAll("#plates .plate-card").length`), 0);
+assert.ok(await js(`document.getElementById("export-plates").disabled && document.getElementById("export").disabled`));
+await js(`[...document.querySelectorAll("#pick-list input")].slice(0, 3).forEach((b) => b.click())`);
+const picked = await js(`[...document.querySelectorAll("#plates .part-num")].map((t) => +t.textContent).sort((a, b) => a - b)`);
+assert.deepEqual(picked, [1, 2, 3], "only the ticked bins, with their own numbers");
+assert.match(await text("export"), /^Export 3 bin\(s\) as ZIP/);
+await js(`document.getElementById("pick-all").click()`);
+assert.equal(await js(`document.querySelectorAll("#plates .part-num").length`), binCount);
+console.log("ok   Bins to print: plates and parts export follow the selection");
+
 await js(`window.scrollTo(0, 0)`);
 const printShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
 writeFileSync(join(out, "e2e-print.png"), Buffer.from(printShot.result.data, "base64"));

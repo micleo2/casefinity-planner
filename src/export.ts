@@ -3,7 +3,7 @@ import type { Zippable } from "fflate";
 import type { Remote } from "comlink";
 import type { CadWorkerApi, ExportFormat } from "./worker.ts";
 import { binParams, fileStem, modelIdFor } from "./bins.ts";
-import type { Layout } from "./bins.ts";
+import type { Bin, Layout } from "./bins.ts";
 import { serializeLayout } from "./layout.ts";
 
 /**
@@ -48,8 +48,10 @@ export async function exportZip(
   layout: Layout,
   formats: ExportFormat[],
   progress: (done: number, total: number) => void,
+  /** The bins to build; layout.json still gets the whole layout. */
+  bins: Bin[] = layout.bins,
 ): Promise<Uint8Array> {
-  const groups = groupParts(layout);
+  const groups = groupParts({ ...layout, bins });
   const files: Zippable = {};
   for (const [i, g] of groups.entries()) {
     progress(i, groups.length);
