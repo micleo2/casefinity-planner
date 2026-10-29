@@ -196,7 +196,7 @@ export class GridEditor {
       g.append(el("rect", { class: "body", x: x + 1.5, y: y + 1.5, width: w - 3, height: h - 3, rx: 3 }));
       const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);
-      if (b.title && h >= 2 * CELL) {
+      if (b.title && !isSpacer(b) && h >= 2 * CELL) {
         const t = b.title.length > w / 7 ? `${b.title.slice(0, Math.max(1, Math.floor(w / 7) - 1))}…` : b.title;
         g.append(el("text", { class: "title", x: x + w / 2, y: y + h / 2 + 16 }, t));
       }
