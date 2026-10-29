@@ -2,12 +2,14 @@ import { newBin } from "./bins.ts";
 import type { Bin, Layout } from "./bins.ts";
 import { fitsBed } from "./layout.ts";
 import { autoPack } from "./pack.ts";
-import type { Demand, Growth, PackOption } from "./pack.ts";
+import type { Demand, PackOption } from "./pack.ts";
 import { sizeItem } from "./sizing.ts";
 
 /**
- * The Auto-pack card on the Pack page: size every item, find up to three
- * transport-safe layouts, draw each as a thumbnail and apply the chosen one.
+ * The Auto-pack card on the Pack page: size every item, find the best
+ * full-columns and full-rows layouts, draw each as a thumbnail and apply the
+ * chosen one. Item bins keep their snug size; spare grid units become spacers
+ * (pack.ts can also grow bins into them, but that's switched off for now).
  */
 
 export interface AutoPackHooks {
@@ -19,27 +21,24 @@ export interface AutoPackHooks {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 /** Everything sizing and packing depend on — options go stale when it changes. */
-function packKey(layout: Layout, growth: string): string {
+function packKey(layout: Layout): string {
   const s = layout.settings;
   return JSON.stringify([layout.items, s.areaX, s.areaY, s.gridSpacing, s.clear, s.wallThick, s.wallBump, s.floorThick,
-    s.overallHeight, s.itemPlay, s.bedX, s.bedY, s.bedZ, growth]);
+    s.overallHeight, s.itemPlay, s.bedX, s.bedY, s.bedZ]);
 }
 
 export class AutoPackCard {
   private options: PackOption[] = [];
   private key = "";
-  private growth: HTMLSelectElement;
   private list: HTMLElement;
   private summary: HTMLElement;
   private runButton: HTMLButtonElement;
 
   constructor(root: HTMLElement, private hooks: AutoPackHooks) {
-    this.growth = root.querySelector("#autopack-growth")!;
     this.list = root.querySelector("#autopack-options")!;
     this.summary = root.querySelector("#autopack-summary")!;
     this.runButton = root.querySelector("#autopack-run")!;
     this.runButton.addEventListener("click", () => this.run());
-    this.growth.addEventListener("change", () => this.run());
   }
 
   /** Size the items and pack them. */
@@ -54,9 +53,9 @@ export class AutoPackCard {
       else broken.push(item.name || "unnamed item");
     }
     const fits = (ux: number, uy: number) => fitsBed(newBin(0, 0, ux, uy), s);
-    const result = autoPack(s.areaX, s.areaY, demands, fits, { growth: this.growth.value as Growth });
+    const result = autoPack(s.areaX, s.areaY, demands, fits, { growth: "spacers" });
     this.options = result.options;
-    this.key = packKey(layout, this.growth.value);
+    this.key = packKey(layout);
     const name = (id: string) => layout.items.find((it) => it.id === id)?.name || "unnamed item";
     const problems = [
       ...(broken.length ? [`Can't size: ${broken.join(", ")} (see the Items page).`] : []),
@@ -71,7 +70,7 @@ export class AutoPackCard {
     const n = layout.items.length;
     this.runButton.disabled = n === 0;
     this.runButton.textContent = this.options.length ? "Find layouts again" : "Find layouts";
-    if (this.key && this.key !== packKey(layout, this.growth.value)) {
+    if (this.key && this.key !== packKey(layout)) {
       this.options = [];
       this.key = "";
       this.list.replaceChildren();
@@ -88,12 +87,12 @@ export class AutoPackCard {
     this.summary.textContent = this.options.length
       ? `${this.options.length} layout${this.options.length === 1 ? "" : "s"} found. Using one replaces the bins on the grid (Ctrl+Z undoes it).`
       : "No layout fits every item — remove some items or use a bigger case.";
-    const cards = this.options.map((opt, i) => this.optionCard(opt, i, layout));
+    const cards = this.options.map((opt) => this.optionCard(opt, layout));
     const notes = problems.map((p) => Object.assign(document.createElement("p"), { className: "hint bad", textContent: p }));
     this.list.replaceChildren(...notes, ...cards);
   }
 
-  private optionCard(opt: PackOption, i: number, layout: Layout): HTMLElement {
+  private optionCard(opt: PackOption, layout: Layout): HTMLElement {
     const { areaX, areaY } = layout.settings;
     const cell = 6;
     const svg = document.createElementNS(SVG_NS, "svg");
@@ -110,9 +109,9 @@ export class AutoPackCard {
       svg.append(r);
     }
     const binCount = opt.bins.length - opt.spacers;
-    const title = `${i === 0 ? "Best · " : ""}Full ${opt.rule}`;
-    const stats = `${binCount} bin${binCount === 1 ? "" : "s"} · ${opt.spacers} spacer${opt.spacers === 1 ? "" : "s"} · ${opt.grown} grown`;
-    const use = Object.assign(document.createElement("button"), { type: "button", textContent: "Use this layout", className: i === 0 ? "primary" : "" });
+    const title = `Full ${opt.rule}`;
+    const stats = `${binCount} bin${binCount === 1 ? "" : "s"} · ${opt.spacers} spacer${opt.spacers === 1 ? "" : "s"}`;
+    const use = Object.assign(document.createElement("button"), { type: "button", textContent: "Use this layout" });
     use.addEventListener("click", () => this.use(opt));
     const text = document.createElement("div");
     text.className = "option-text";

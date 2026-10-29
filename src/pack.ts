@@ -192,8 +192,8 @@ const signature = (bins: Placed[]) =>
   bins.map((b) => `${b.id}:${b.col},${b.row},${b.unitsX},${b.unitsY}`).sort().join("|");
 
 /**
- * Up to three layouts: the best with full columns, the best with full rows,
- * and the runner-up of the better rule when it differs. Deterministic for a seed.
+ * Up to two layouts: the best with full columns and the best with full rows,
+ * better first. Deterministic for a seed.
  */
 export function autoPack(
   areaX: number,
@@ -235,8 +235,5 @@ export function autoPack(
   candidates.sort((a, b) => a.score - b.score);
   const bestOf = (rule: Rule) => candidates.find((c) => c.rule === rule);
   const options = [bestOf("columns"), bestOf("rows")].filter((o): o is PackOption => !!o).sort((a, b) => a.score - b.score);
-  const runnerUp = candidates.find((c) => !options.includes(c) && c.rule === options[0]?.rule);
-  if (runnerUp) options.push(runnerUp);
-  options.sort((a, b) => a.score - b.score);
   return { options, unplaceable: candidates.length ? unplaceable : usable.map((d) => d.id).concat(unplaceable) };
 }

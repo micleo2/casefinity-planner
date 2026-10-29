@@ -22,8 +22,8 @@ npm run build      # static site in dist/ — host anywhere
   the reasoning shown: e.g. “70 + 1 → 6 grid units give 85.9 ✓ (5 give 70.9 ✗)”. Inside sizes come from
   casefinity's geometry (`15n − 0.2 clearance − 2 × wall − socket bosses`, height − floor) and are checked
   against the real CAD model in `npm run smoke`. *Play around items* (default 1 mm) is added to each footprint.
-- **2 Pack → Auto-pack** — finds up to three transport-safe layouts (full columns or full rows), filling spare
-  grid units by growing bins or with spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
+- **2 Pack → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
+  keep their snug size and spare grid units become spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D. *Selected bin* shows the real CAD model of one bin.
 - **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), numbered to
   match a **case map** you can print and tape inside the lid. *Export ZIP* gives one 3MF per plate with every
