@@ -144,7 +144,7 @@ presetSelect.addEventListener("change", () => {
 });
 
 $("reset-advanced").addEventListener("click", () => {
-  for (const key of ["floorThick", "ribWidth", "wallBump", "draftAngle", "pullTabHeight"] as const) {
+  for (const key of ["gridSpacing", "overallHeight", "wallThick", "clear", "floorThick", "ribWidth", "wallBump", "draftAngle", "pullTabHeight"] as const) {
     layout.settings[key] = DEFAULT_SETTINGS[key];
   }
   syncSettingInputs();
