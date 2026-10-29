@@ -351,8 +351,7 @@ function render() {
   caseHint.textContent =
     `The case fits ${cx + s.sideBorderUnits} × ${cy + s.frontBorderUnits} grid units; ` +
     `the border takes ${s.sideBorderUnits} × ${s.frontBorderUnits}, leaving ${cx} × ${cy} for bins.` +
-    (preset ? ` Case depth ${preset.depth} mm.` : "") +
-    " Use the same border values as your perimeter on casefinity.net.";
+    (preset ? ` Case depth ${preset.depth} mm.` : "");
   caseHint.className = cx >= 1 && cy >= 1 && cx <= 60 && cy <= 60 ? "hint" : "hint bad";
   $("area-hint").textContent =
     `Grid: ${s.areaX} × ${s.areaY} grid units = ${+(s.areaX * s.gridSpacing).toFixed(2)} × ${+(s.areaY * s.gridSpacing).toFixed(2)} mm.`;
