@@ -113,10 +113,9 @@ const ref = [
 ];
 for (const b of ref) await drawBin(...b);
 assert.equal((await bins()).length, 17, "all 17 bins drawn");
-// a valid layout reports nothing: no passes are listed, and the card hides
-let checks = await text("checks");
-assert.equal(checks, "");
-assert.equal(await js(`document.getElementById("checks-card").hidden`), true);
+// a valid layout reports nothing: no passes are listed, and the checks hide
+assert.equal(await text("checks"), "");
+assert.equal(await js(`document.getElementById("checks").hidden`), true);
 assert.match(await text("export"), /Export 17 bin\(s\) as ZIP \(11 unique\)/);
 console.log("ok   reference layout: 17 bins, 11 unique parts, all checks pass");
 

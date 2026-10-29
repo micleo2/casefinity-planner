@@ -374,7 +374,7 @@ function render() {
     ($("bin-rotate") as HTMLButtonElement).disabled = bin.unitsX === bin.unitsY;
   }
 
-  // Only problems: failures first, then warnings. Nothing to report hides the card.
+  // Only problems, under the grid: failures first, then warnings.
   const problems = runChecks(layout).filter((c) => c.level !== "ok");
   problems.sort((a, b) => Number(a.level === "warn") - Number(b.level === "warn"));
   $("checks").replaceChildren(
@@ -385,7 +385,7 @@ function render() {
       return p;
     }),
   );
-  $("checks-card").hidden = problems.length === 0;
+  $("checks").hidden = problems.length === 0;
 
   const parts = groupParts(layout);
   const exportBtn = $<HTMLButtonElement>("export");
