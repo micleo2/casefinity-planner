@@ -180,7 +180,7 @@ button.icon { padding: 4px 10px; font-size: 18px; line-height: 1; }
 .seg { display: inline-flex; border: 1px solid var(--input-border); border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
 .seg button { border: 0; border-radius: 0; background: #fff; padding: 6px 12px; font-size: 14px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-#case-view { height: 420px; border-radius: 6px; overflow: hidden; background: #f8fafc; border: 1px solid var(--border); }
+#case-view { height: 420px; border-radius: 6px; overflow: hidden; background: #16181d; }
 .fill-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; font-variant-numeric: tabular-nums; }
 .fill-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
 .fill-table td { padding: 6px 8px; border-bottom: 1px solid #f1f2f4; }

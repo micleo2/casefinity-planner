@@ -12,9 +12,12 @@ import { placeInBin, sizeItem } from "./sizing.ts";
  * Z up from the case floor. Renders on demand (orbit, resize, update).
  */
 
-const BIN = 0x3b6fe0;
-const SPACER = 0x9ca3af;
-const SELECTED = 0x1d4ed8;
+// Same palette and lighting as casefinity's single-bin viewer (src/vendor/casefinity/viewer.ts)
+const BACKGROUND = 0x16181d;
+const BIN = 0x6b8fb3;
+const SPACER = 0x5c6573;
+const SELECTED = 0xa8c8ea;
+const EDGE = 0x1a2530;
 
 export class CaseView {
   private renderer: THREE.WebGLRenderer;
@@ -28,13 +31,13 @@ export class CaseView {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(this.renderer.domElement);
-    this.scene.background = new THREE.Color(0xf8fafc);
+    this.scene.background = new THREE.Color(BACKGROUND);
     this.camera.up.set(0, 0, 1);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.addEventListener("change", () => this.draw());
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.6));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-    sun.position.set(-300, -500, 800);
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.2));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    sun.position.set(300, -500, 600);
     this.scene.add(sun);
     this.scene.add(this.group);
     new ResizeObserver(() => this.resize()).observe(container);
@@ -74,7 +77,7 @@ export class CaseView {
     const H = s.overallHeight;
 
     // Case floor with the grid drawn on it
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ color: 0xe5e7eb }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ color: 0x1d2026, roughness: 0.9 }));
     floor.position.set(W / 2, D / 2, -0.2);
     this.group.add(floor);
     const lines: number[] = [];
@@ -82,11 +85,11 @@ export class CaseView {
     for (let j = 0; j <= s.areaY; j++) lines.push(0, j * P, 0, W, j * P, 0);
     const gridGeo = new THREE.BufferGeometry();
     gridGeo.setAttribute("position", new THREE.Float32BufferAttribute(lines, 3));
-    this.group.add(new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({ color: 0xc7d2ea })));
+    this.group.add(new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({ color: 0x2c313a })));
 
     const items = new Map(layout.items.map((it) => [it.id, it]));
-    const itemMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.6 });
-    const itemSelMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+    const itemMat = new THREE.MeshStandardMaterial({ color: BIN, metalness: 0.05, roughness: 0.65 });
+    const itemSelMat = new THREE.MeshStandardMaterial({ color: SELECTED, metalness: 0.05, roughness: 0.65 });
 
     for (const bin of layout.bins) {
       const sel = bin.id === selectedId;
@@ -99,7 +102,7 @@ export class CaseView {
 
       const shellGeo = new THREE.BoxGeometry(bw, bd, bh);
       const shell = new THREE.Mesh(shellGeo, new THREE.MeshStandardMaterial({
-        color, transparent: true, opacity: sel ? 0.28 : 0.14, depthWrite: false,
+        color, transparent: true, opacity: sel ? 0.22 : 0.12, depthWrite: false,
       }));
       shell.position.set(cx, cy, bh / 2);
       shell.renderOrder = 2;
@@ -127,7 +130,7 @@ export class CaseView {
         mesh.material = sel ? itemSelMat : itemMat;
         mesh.position.set(cx + so.cx, cy + so.cy, so.cz);
         this.group.add(mesh);
-        const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: 0x334155 }));
+        const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: EDGE }));
         outline.position.copy(mesh.position);
         outline.rotation.copy(mesh.rotation);
         this.group.add(outline);
