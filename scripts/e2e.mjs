@@ -183,6 +183,12 @@ console.log("ok   set lid / double-sided / solid types");
 await js(`document.getElementById("view-bin").click()`);
 await poll(() => text("preview-status").then((t) => t.includes("built in")), 60000);
 console.log(`ok   preview: ${await text("preview-status")}`);
+// deselecting hides the bin card and the Selected-bin option, and falls back to Whole case
+await key("Escape");
+assert.deepEqual(await js(`["bin-card", "view-seg", "case-view"].map((id) => document.getElementById(id).hidden)`), [true, true, false]);
+await mouse("mousePressed", await cellXY(0, 12)); await mouse("mouseReleased", await cellXY(0, 12));
+assert.deepEqual(await js(`["bin-card", "view-seg"].map((id) => document.getElementById(id).hidden)`), [false, false]);
+console.log("ok   bin card and Selected-bin preview only while a bin is selected");
 
 // --- export ZIP -------------------------------------------------------------------
 await js(`document.getElementById("export").click()`);

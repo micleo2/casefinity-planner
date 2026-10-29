@@ -168,8 +168,10 @@ const binInputs = {
 
 function syncBinInputs() {
   const bin = selected();
-  $("bin-empty").hidden = !!bin;
-  $("bin-form").hidden = !bin;
+  // The bin card and the "Selected bin" preview only exist while a bin is selected.
+  $("bin-card").hidden = !bin;
+  $("view-seg").hidden = !bin;
+  if (!bin && view === "bin") setView("case");
   $("bin-error").hidden = true;
   if (!bin) return;
   binInputs.title.value = bin.title;

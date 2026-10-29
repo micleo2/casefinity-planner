@@ -145,12 +145,8 @@
           </div>
         </section>
 
-        <section class="card" id="bin-card">
-          <div id="bin-empty">
-            <h2>Bin</h2>
-            <p class="hint">No bin selected — drag across empty cells in the grid to draw one, or click a bin to edit it.</p>
-          </div>
-          <div id="bin-form" hidden>
+        <section class="card" id="bin-card" hidden>
+          <div id="bin-form">
             <h2 id="bin-heading">Bin</h2>
             <label>Title (for labelling and file names)<input id="bin-title" type="text" maxlength="40" placeholder="e.g. Small parts" /></label>
             <p class="hint" id="bin-dims"></p>
@@ -225,7 +221,7 @@
             <button type="button" class="keys-btn" id="preview-keys-btn" popovertarget="preview-keys" title="Keyboard shortcuts (?)" aria-label="Preview keyboard shortcuts" hidden>?</button>
           </div>
           <div class="preview-head">
-            <div class="seg" role="group" aria-label="Preview">
+            <div class="seg" id="view-seg" role="group" aria-label="Preview" hidden>
               <button type="button" id="view-case" aria-pressed="true">Whole case</button>
               <button type="button" id="view-bin" aria-pressed="false">Selected bin</button>
             </div>
