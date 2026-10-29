@@ -135,7 +135,7 @@ console.log("ok   select 3×5 and title it");
 // --- delete, undo, redo ----------------------------------------------------------
 await key("Delete");
 assert.equal((await bins()).length, 16);
-assert.match(await text("checks"), /✗ Not transport-safe/);
+assert.ok(await js(`[...document.querySelectorAll("#checks .check-line.fail")].some((p) => p.textContent.startsWith("Not transport-safe"))`));
 // failures are listed before warnings (the empty grid units)
 const levels = await js(`[...document.querySelectorAll("#checks .check-line")].map((p) => p.classList[1])`);
 assert.deepEqual(levels, [...levels].sort((x, y) => Number(x === "warn") - Number(y === "warn")));
@@ -223,7 +223,7 @@ await js(`(() => { const i = document.getElementById("sideBorderUnits"); i.value
 assert.equal(await area(), "20×14");
 // the 15-row reference layout no longer fits 14 rows: kept, but flagged
 assert.equal((await bins()).length, 17);
-assert.match(await text("checks"), /✗ 4 bin\(s\) extend past the area/);
+assert.ok(await js(`[...document.querySelectorAll("#checks .check-line.fail")].some((p) => p.textContent.startsWith("4 bin(s) extend past the area"))`));
 assert.equal(await presetText(), "Apache 3800");
 await pickPreset(""); // --Custom-- restores casefinity's 350 × 250 (border is now 5 / 3)
 assert.equal(await area(), "18×13");

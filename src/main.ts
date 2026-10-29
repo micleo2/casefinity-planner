@@ -334,6 +334,12 @@ document.addEventListener("keydown", (e) => {
 
 // ---- render ----------------------------------------------------------------------
 
+/** The usual error (circle) and warning (triangle) marks, drawn so they don't depend on the font. */
+const CHECK_ICONS: Record<string, string> = {
+  fail: `<svg class="check-icon" viewBox="0 0 16 16" role="img" aria-label="Error"><circle cx="8" cy="8" r="7.5" fill="currentColor"/><path d="M8 4v5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="11.6" r="1" fill="#fff"/></svg>`,
+  warn: `<svg class="check-icon" viewBox="0 0 16 16" role="img" aria-label="Warning"><path d="M8 1.2 15.4 14.5H.6Z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12.2" r=".9" fill="#fff"/></svg>`,
+};
+
 function render() {
   const s = layout.settings;
   const cx = cavityUnits(s.caseLength, s.gridSpacing, s.sideBorderUnits);
@@ -381,7 +387,8 @@ function render() {
     ...problems.map((c) => {
       const p = document.createElement("p");
       p.className = `check-line ${c.level}`;
-      p.textContent = `${c.level === "warn" ? "!" : "✗"} ${c.text}`;
+      p.innerHTML = CHECK_ICONS[c.level];
+      p.append(c.text);
       return p;
     }),
   );
