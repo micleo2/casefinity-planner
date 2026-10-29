@@ -170,19 +170,3 @@ test("a packed layout passes the checks panel", () => {
   assert.ok(checks.some((c) => c.text === "All grid units filled."));
   assert.ok(!checks.some((c) => c.text.startsWith("Not in the layout")));
 });
-
-test("growth and spacers never create new warp-length bins", () => {
-  const maxSpan = 9; // 9 × 15 + 1.3 = 136.3 mm < 150 mm
-  for (const growth of ["grow", "spacers"]) {
-    const { options } = autoPack(21, 14, mockup, bed, { growth, maxSpan });
-    assert.ok(options.length > 0);
-    for (const o of options) {
-      assertValid(o, 21, 14, mockup);
-      for (const b of o.bins) {
-        const demand = mockup.find((d) => d.id === b.id);
-        const own = demand ? Math.max(demand.unitsX, demand.unitsY) : 0;
-        assert.ok(Math.max(b.unitsX, b.unitsY) <= Math.max(maxSpan, own), `${b.id ?? "spacer"} ${b.unitsX}×${b.unitsY} (${growth})`);
-      }
-    }
-  }
-});

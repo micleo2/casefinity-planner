@@ -1,5 +1,5 @@
 import type { Bin, Layout } from "./bins.ts";
-import { canPlace, fitsBed, inBounds, warpRisk } from "./layout.ts";
+import { canPlace, fitsBed, inBounds } from "./layout.ts";
 import type { Rect } from "./layout.ts";
 
 /**
@@ -193,21 +193,13 @@ export class GridEditor {
       const bad = !inBounds(b, s) || !fitsBed(b, s);
       const g = el("g", { class: `bin${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
       g.append(el("rect", { class: "body", x: x + 1.5, y: y + 1.5, width: w - 3, height: h - 3, rx: 3 }));
-      if (b.pullTab) {
-        g.append(el("rect", { class: "tab", x: x + w / 2 - Math.min(8, w / 4), y: y + 3, width: Math.min(16, w / 2), height: 3, rx: 1 }));
-      }
       const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);
       if (b.title && h >= 2 * CELL) {
         const t = b.title.length > w / 7 ? `${b.title.slice(0, Math.max(1, Math.floor(w / 7) - 1))}…` : b.title;
         g.append(el("text", { class: "title", x: x + w / 2, y: y + h / 2 + 16 }, t));
       }
-      const icons = [
-        b.type === "with-lid" ? "◓" : b.type === "double-sided" ? "◒" : b.type === "solid" ? "■" : "",
-        warpRisk(b, s) ? "⚠" : "",
-        fitsBed(b, s) ? "" : "⛔",
-      ].join("");
-      if (icons) g.append(el("text", { class: "icons", x: x + w - 5, y: y + h - 8 }, icons));
+      if (!fitsBed(b, s)) g.append(el("text", { class: "icons", x: x + w - 5, y: y + h - 8 }, "⛔"));
       if (isSel) {
         const hs = 8;
         const handles: [Edge, number, number][] = [

@@ -47,13 +47,13 @@ test("partial rows and columns fail and are listed 1-based", () => {
   assert.match(fail.text, /rows \(1, 2\) and columns \(1, 2\)/);
 });
 
-test("print bed and warp checks", () => {
+test("print bed check", () => {
   const l = layoutWith(20, 20, [[0, 0, 18, 2], [0, 2, 11, 2]]);
   l.settings.bedX = l.settings.bedY = 256;
   const checks = runChecks(l);
-  // 18×15 = 270 mm doesn't fit a 256 bed; 11×15 + 1.3 = 166 mm warns
+  // 18×15 = 270 mm doesn't fit a 256 bed; 11×15 + 1.3 = 166 mm does
   assert.ok(checks.some((c) => c.level === "fail" && c.text.includes("18×2")));
-  assert.ok(checks.some((c) => c.level === "warn" && c.text.includes("11×2")));
+  assert.ok(!checks.some((c) => c.text.includes("11×2")));
 });
 
 test("bins left outside after shrinking the area fail", () => {

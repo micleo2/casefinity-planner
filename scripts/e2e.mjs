@@ -282,9 +282,6 @@ assert.match(checks, /✓ All grid units filled/);
 assert.doesNotMatch(checks, /Not in the layout|Too small for its item|✗/);
 const linked = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => b.itemId).length`);
 assert.equal(linked, 6);
-// only the multimeter's own 13-long bin may be warp length; growth adds none
-const long = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => Math.max(b.unitsX, b.unitsY) > 9).map((b) => b.title)`);
-assert.deepEqual(long, ["Multimeter"]);
 console.log(`ok   auto-pack: ${optionTitles.length} layouts (${optionTitles.join(" / ")}), applied: ${(await bins()).length} bins, all checks pass`);
 
 // whole-case preview: a WebGL canvas and one fill row per item bin

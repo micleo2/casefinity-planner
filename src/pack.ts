@@ -7,9 +7,7 @@
  * go into strips first-fit (widest first, in a few hundred shuffled orders and
  * orientations); whatever is left is filled by growing bins or by spacer bins.
  * Layouts are scored by total bin perimeter plus a per-bin cost: fewer, more
- * compact bins mean fewer walls to print. Neither growth nor spacers may make
- * a bin longer than `maxSpan` (the warp-risk length) unless the item's own bin
- * already is. Pure — tested in Node.
+ * compact bins mean fewer walls to print. Pure — tested in Node.
  */
 
 export interface Demand {
@@ -109,12 +107,12 @@ function fillStrips(demands: Demand[], W: number, H: number, rand: () => number,
   return strips;
 }
 
-/** Split a spare rectangle into spacer bins that each fit the bed and stay under the warp span. */
-function spacers(col: number, row: number, w: number, h: number, fits: FitsBed, maxSpan: number): Placed[] {
+/** Split a spare rectangle into spacer bins that each fit the bed. */
+function spacers(col: number, row: number, w: number, h: number, fits: FitsBed): Placed[] {
   const out: Placed[] = [];
-  let tw = Math.min(w, maxSpan);
+  let tw = w;
   while (tw > 1 && !fits(tw, 1)) tw--;
-  let th = Math.min(h, maxSpan);
+  let th = h;
   while (th > 1 && !fits(tw, th)) th--;
   for (let x = 0; x < w; x += tw) {
     for (let y = 0; y < h; y += th) {
@@ -125,10 +123,7 @@ function spacers(col: number, row: number, w: number, h: number, fits: FitsBed, 
 }
 
 /** Turn strips into placed bins on a W × H grid, filling every spare grid unit. */
-function finish(strips: Strip[], W: number, H: number, fits: FitsBed, growth: Growth, maxSpan: number): Placed[] {
-  // Growing may not make a bin longer than the warp span, unless it already was.
-  const canGrow = (e: Entry, w: number, h: number) =>
-    fits(w, h) && Math.max(w, h) <= Math.max(maxSpan, e.w, e.h);
+function finish(strips: Strip[], W: number, H: number, fits: FitsBed, growth: Growth): Placed[] {
   const widths = strips.map((s) => s.width);
   let spare = W - widths.reduce((a, b) => a + b, 0);
   if (spare > 0 && growth === "grow") {
@@ -137,7 +132,7 @@ function finish(strips: Strip[], W: number, H: number, fits: FitsBed, growth: Gr
     for (const i of order) {
       const w = widths[i] + spare;
       const bottom = H - strips[i].used;
-      const ok = strips[i].entries.every((e) => canGrow(e, w, e.h)) && (bottom === 0 || (fits(w, 1) && w <= maxSpan));
+      const ok = strips[i].entries.every((e) => fits(w, e.h)) && (bottom === 0 || fits(w, 1));
       if (ok) {
         widths[i] = w;
         spare = 0;
@@ -155,7 +150,7 @@ function finish(strips: Strip[], W: number, H: number, fits: FitsBed, growth: Gr
     if (rest > 0 && growth === "grow") {
       // Grow the shortest bin that stays printable.
       const order = heights.map((_, k) => k).sort((a, b) => heights[a] - heights[b]);
-      const k = order.find((k) => canGrow(strip.entries[k], w, heights[k] + rest));
+      const k = order.find((k) => fits(w, heights[k] + rest));
       if (k !== undefined) {
         heights[k] += rest;
         rest = 0;
@@ -167,19 +162,19 @@ function finish(strips: Strip[], W: number, H: number, fits: FitsBed, growth: Gr
       const bw = growth === "grow" ? w : e.w;
       const grown = bw !== e.w || heights[k] !== e.h;
       placed.push({ id: e.id, col, row, unitsX: bw, unitsY: heights[k], grownFrom: grown ? [e.w, e.h] : null });
-      if (bw < w) placed.push(...spacers(col + bw, row, w - bw, heights[k], fits, maxSpan));
+      if (bw < w) placed.push(...spacers(col + bw, row, w - bw, heights[k], fits));
       row += heights[k];
     });
-    if (rest > 0) placed.push(...spacers(col, row, w, rest, fits, maxSpan));
+    if (rest > 0) placed.push(...spacers(col, row, w, rest, fits));
     col += w;
   });
-  if (spare > 0) placed.push(...spacers(col, 0, spare, H, fits, maxSpan));
+  if (spare > 0) placed.push(...spacers(col, 0, spare, H, fits));
   return placed;
 }
 
-/** Fewer, more compact bins print fewer walls; bins past the warp span cost extra. */
-function score(bins: Placed[], maxSpan: number): number {
-  return bins.reduce((s, b) => s + b.unitsX + b.unitsY + 4 + (Math.max(b.unitsX, b.unitsY) > maxSpan ? 12 : 0), 0);
+/** Fewer, more compact bins print fewer walls. */
+function score(bins: Placed[]): number {
+  return bins.reduce((s, b) => s + b.unitsX + b.unitsY + 4, 0);
 }
 
 function transpose(bins: Placed[]): Placed[] {
@@ -205,8 +200,8 @@ export function autoPack(
   areaY: number,
   demands: Demand[],
   fits: FitsBed,
-  { growth = "grow", trials = 400, seed = 1, maxSpan = Infinity }:
-    { growth?: Growth; trials?: number; seed?: number; maxSpan?: number } = {},
+  { growth = "grow", trials = 400, seed = 1 }:
+    { growth?: Growth; trials?: number; seed?: number } = {},
 ): PackResult {
   const fitsArea = (d: Demand) =>
     (d.unitsX <= areaX && d.unitsY <= areaY) || (d.unitsY <= areaX && d.unitsX <= areaY);
@@ -223,7 +218,7 @@ export function autoPack(
     for (let t = 0; t < trials; t++) {
       const strips = fillStrips(usable, W, H, rand, t > 0);
       if (!strips) continue;
-      let bins = finish(strips, W, H, fits, growth, maxSpan);
+      let bins = finish(strips, W, H, fits, growth);
       if (rule === "rows") bins = transpose(bins);
       const sig = signature(bins);
       if (seen.has(sig)) continue;
@@ -231,7 +226,7 @@ export function autoPack(
       candidates.push({
         rule,
         bins,
-        score: score(bins, maxSpan),
+        score: score(bins),
         spacers: bins.filter((b) => b.id === null).length,
         grown: bins.filter((b) => b.grownFrom).length,
       });

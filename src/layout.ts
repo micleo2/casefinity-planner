@@ -50,13 +50,6 @@ export function fitsBed(bin: Bin, s: Settings): boolean {
   return flat && buildHeight(bin, s) <= s.bedZ;
 }
 
-/** A long side past this risks lifting corners on the bed with thin 1.2 mm walls. */
-export const WARP_SPAN_MM = 150;
-
-export function warpRisk(bin: Bin, s: Settings): boolean {
-  const [x, y] = boundingBox(bin, s);
-  return Math.max(x, y) >= WARP_SPAN_MM;
-}
 
 export interface Check {
   ok: boolean;
@@ -112,10 +105,6 @@ export function runChecks(layout: Layout): Check[] {
     pass("Every bin fits the print bed.");
   }
 
-  const warpy = layout.bins.filter((b) => warpRisk(b, s));
-  if (warpy.length) {
-    warn(`Warp risk (long side ≥ ${WARP_SPAN_MM} mm): ${warpy.map((b) => `${b.unitsX}×${b.unitsY}`).join(", ")}. Use a brim or split the bin.`);
-  }
 
   // casefinity sizes the double-sided hopper from the bin's width only, so a bin
   // wider than deep gets a hopper poking out through its side walls

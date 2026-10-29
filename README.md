@@ -23,8 +23,7 @@ npm run build      # static site in dist/ — host anywhere
   casefinity's geometry (`15n − 0.2 clearance − 2 × wall − socket bosses`, height − floor) and are checked
   against the real CAD model in `npm run smoke`. *Play around items* (default 1 mm) is added to each footprint.
 - **2 Pack → Auto-pack** — finds up to three transport-safe layouts (full columns or full rows), filling spare
-  grid units by growing bins or with spacer bins. Growth never makes a bin longer than the warp-risk length
-  unless the item's own bin already is. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
+  grid units by growing bins or with spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D, plus a table of how
   full each bin is by volume and by depth. *Selected bin* shows the real CAD model of one bin.
 - **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), numbered to
@@ -42,7 +41,7 @@ npm run build      # static site in dist/ — host anywhere
 - **Bin** — title (used in file names), size, type (no lid / with lid / double-sided / solid block), height
   override, lid label, hopper fillet for double-sided bins, pull tab.
 - **Checks** — transport safety (every row *or* every column completely full or empty, per the guide's
-  “major issue”), empty grid units, print-bed fit, warp risk, rectangular double-sided hoppers.
+  “major issue”), empty grid units, print-bed fit, rectangular double-sided hoppers.
 - **Export** — one ZIP with `stl/`, optional `step/` and `3mf/`, plus `layout.json`. Identical bins are built
   once and named with a quantity, e.g. `02x02_no-lid_x4.stl`.
 - The layout autosaves in the browser; *Save / Load layout* moves it between machines.

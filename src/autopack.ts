@@ -1,6 +1,6 @@
 import { newBin } from "./bins.ts";
 import type { Bin, Layout } from "./bins.ts";
-import { WARP_SPAN_MM, fitsBed } from "./layout.ts";
+import { fitsBed } from "./layout.ts";
 import { autoPack } from "./pack.ts";
 import type { Demand, Growth, PackOption } from "./pack.ts";
 import { sizeItem } from "./sizing.ts";
@@ -54,10 +54,7 @@ export class AutoPackCard {
       else broken.push(item.name || "unnamed item");
     }
     const fits = (ux: number, uy: number) => fitsBed(newBin(0, 0, ux, uy), s);
-    // Longest side, in grid units, that stays under the warp-risk length (bounding box incl. ribs)
-    let maxSpan = 1;
-    while ((maxSpan + 1) * s.gridSpacing - 2 * s.clear + s.wallBump < WARP_SPAN_MM) maxSpan++;
-    const result = autoPack(s.areaX, s.areaY, demands, fits, { growth: this.growth.value as Growth, maxSpan });
+    const result = autoPack(s.areaX, s.areaY, demands, fits, { growth: this.growth.value as Growth });
     this.options = result.options;
     this.key = packKey(layout, this.growth.value);
     const name = (id: string) => layout.items.find((it) => it.id === id)?.name || "unnamed item";
