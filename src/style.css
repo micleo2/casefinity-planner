@@ -79,7 +79,6 @@ details { margin: 4px 0 6px; }
 summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-bottom: 10px; }
 
 .check-line { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
-.check-line.ok { color: var(--ok); }
 .check-line.warn { color: #b45309; }
 .check-line.fail { color: var(--bad); }
 

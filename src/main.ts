@@ -374,15 +374,18 @@ function render() {
     ($("bin-rotate") as HTMLButtonElement).disabled = bin.unitsX === bin.unitsY;
   }
 
-  const checks = $("checks");
-  checks.replaceChildren(
-    ...runChecks(layout).map((c) => {
+  // Only problems: failures first, then warnings. Nothing to report hides the card.
+  const problems = runChecks(layout).filter((c) => c.level !== "ok");
+  problems.sort((a, b) => Number(a.level === "warn") - Number(b.level === "warn"));
+  $("checks").replaceChildren(
+    ...problems.map((c) => {
       const p = document.createElement("p");
       p.className = `check-line ${c.level}`;
-      p.textContent = `${c.level === "ok" ? "✓" : c.level === "warn" ? "!" : "✗"} ${c.text}`;
+      p.textContent = `${c.level === "warn" ? "!" : "✗"} ${c.text}`;
       return p;
     }),
   );
+  $("checks-card").hidden = problems.length === 0;
 
   const parts = groupParts(layout);
   const exportBtn = $<HTMLButtonElement>("export");

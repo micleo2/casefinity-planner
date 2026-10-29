@@ -113,10 +113,10 @@ const ref = [
 ];
 for (const b of ref) await drawBin(...b);
 assert.equal((await bins()).length, 17, "all 17 bins drawn");
+// a valid layout reports nothing: no passes are listed, and the card hides
 let checks = await text("checks");
-assert.match(checks, /✓ Transport-safe/);
-assert.match(checks, /✓ All grid units filled/);
-assert.match(checks, /✓ Every bin fits the print bed/);
+assert.equal(checks, "");
+assert.equal(await js(`document.getElementById("checks-card").hidden`), true);
 assert.match(await text("export"), /Export 17 bin\(s\) as ZIP \(11 unique\)/);
 console.log("ok   reference layout: 17 bins, 11 unique parts, all checks pass");
 
@@ -137,6 +137,10 @@ console.log("ok   select 3×5 and title it");
 await key("Delete");
 assert.equal((await bins()).length, 16);
 assert.match(await text("checks"), /✗ Not transport-safe/);
+// failures are listed before warnings (the empty grid units)
+const levels = await js(`[...document.querySelectorAll("#checks .check-line")].map((p) => p.classList[1])`);
+assert.deepEqual(levels, [...levels].sort((x, y) => Number(x === "warn") - Number(y === "warn")));
+assert.ok(levels.includes("fail") && levels.includes("warn"), levels.join());
 await key("z", "KeyZ", 2);
 assert.equal((await bins()).length, 17);
 await key("z", "KeyZ", 2 | 8);
@@ -164,7 +168,7 @@ console.log("ok   move / resize handle / rotate / arrow-key move");
 // put the 4×7 back so the export matches the reference
 await key("Delete");
 await drawBin(11, 8, 4, 7);
-assert.match(await text("checks"), /✓ All grid units filled/);
+assert.doesNotMatch(await text("checks"), /grid units empty/);
 
 // --- one bin of each other type, for the export -----------------------------------
 const setType = async (c, r, type) => {
@@ -276,10 +280,7 @@ assert.ok(optionTitles.some((t) => t.includes("columns")) && optionTitles.some((
 await js(`document.querySelector("#autopack-options .option button").click()`);
 await poll(() => bins().then((b) => b.length > 0 && b.length !== 17));
 assert.equal(dialogs.length, 1, "asked before replacing the existing bins");
-checks = await text("checks");
-assert.match(checks, /✓ Transport-safe/);
-assert.match(checks, /✓ All grid units filled/);
-assert.doesNotMatch(checks, /Not in the layout|Too small for its item|✗/);
+assert.equal(await text("checks"), "");
 const linked = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => b.itemId).length`);
 assert.equal(linked, 6);
 console.log(`ok   auto-pack: ${optionTitles.length} layouts (${optionTitles.join(" / ")}), applied: ${(await bins()).length} bins, all checks pass`);
