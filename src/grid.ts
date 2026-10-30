@@ -1,6 +1,7 @@
 import { isSpacer } from "./bins.ts";
 import type { Bin, Layout } from "./bins.ts";
 import { canPlace, fitsBed, inBounds } from "./layout.ts";
+import { placeInBin, sizeItem } from "./sizing.ts";
 import type { Rect } from "./layout.ts";
 
 /**
@@ -154,6 +155,36 @@ export class GridEditor {
     else this.render();
   }
 
+  /**
+   * The item's footprint inside its bin, to scale: where placeInBin puts each
+   * copy (bin-local mm, +Y = back = up on screen). Boxes are rectangles,
+   * standing cylinders circles, and lying cylinders — a rectangle from above —
+   * get a line along their axis.
+   */
+  private drawItems(g: SVGGElement, b: Bin, layout: Layout, cx: number, cy: number) {
+    const item = b.itemId ? layout.items.find((it) => it.id === b.itemId) : undefined;
+    if (!item) return;
+    const s = layout.settings;
+    const sizing = sizeItem(item, s);
+    const solids = sizing.ok ? placeInBin(item, sizing, b, s) : null;
+    if (!solids) return;
+    const k = CELL / s.gridSpacing;
+    for (const so of solids) {
+      const px = cx + so.cx * k;
+      const py = cy - so.cy * k;
+      if (so.kind === "cyl" && so.axis === "z") {
+        g.append(el("circle", { class: "item-fp", cx: px, cy: py, r: so.r * k }));
+        continue;
+      }
+      const [sx, sy] = so.kind === "box" ? [so.sx, so.sy] : so.axis === "x" ? [so.len, 2 * so.r] : [2 * so.r, so.len];
+      g.append(el("rect", { class: "item-fp", x: px - (sx * k) / 2, y: py - (sy * k) / 2, width: sx * k, height: sy * k, rx: 1.5 }));
+      if (so.kind === "cyl") {
+        const [dx, dy] = so.axis === "x" ? [(sx * k) / 2, 0] : [0, (sy * k) / 2];
+        g.append(el("path", { class: "item-axis", d: `M${px - dx} ${py - dy}L${px + dx} ${py + dy}` }));
+      }
+    }
+  }
+
   render() {
     const layout = this.hooks.layout();
     const { areaX, areaY } = layout.settings;
@@ -198,6 +229,7 @@ export class GridEditor {
       const itemOff = !!b.itemId && !!layout.items.find((it) => it.id === b.itemId)?.off;
       const g = el("g", { class: `bin${isSpacer(b) ? " spacer" : ""}${linked ? " linked" : ""}${itemOff ? " item-off" : ""}${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
       g.append(el("rect", { class: "body", x: x + 1.5, y: y + 1.5, width: w - 3, height: h - 3, rx: 3 }));
+      this.drawItems(g, b, layout, x + w / 2, y + h / 2);
       const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);
       if (b.title && !isSpacer(b) && h >= 2 * CELL) {
