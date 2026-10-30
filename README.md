@@ -49,7 +49,8 @@ npm run build      # static site in dist/ — host anywhere
   exact: a layout fails if any bin, or group of bins pushing each other, can slide into empty space (named, with
   the direction); a gap boxed in so nothing can move is fine and only noted. Also print-bed fit, items that
   outgrew their bin, items switched off that still have a bin, and rectangular double-sided hoppers.
-- The layout autosaves in the browser; *Save / Load layout* moves it between machines.
+- The layout autosaves in the browser; *Save / Load layout* moves it between machines. The project name (next to
+  the title) names the exports, e.g. `Soldering-kit-plates.zip` and `Soldering-kit-layout.json`.
 
 ## Layout
 

@@ -4,7 +4,7 @@ import type { Remote } from "comlink";
 import type { CadWorkerApi } from "./worker.ts";
 import { binParams, fileStem, isSpacer, modelIdFor } from "./bins.ts";
 import type { Bin, Layout } from "./bins.ts";
-import { serializeLayout } from "./layout.ts";
+import { exportName, serializeLayout } from "./layout.ts";
 import { binNumbers, planPlates } from "./plates.ts";
 import type { PlatePlan } from "./plates.ts";
 
@@ -163,7 +163,7 @@ export class PrintPage {
         for (const x of extras) files[`lids/${x.name}.3mf`] = [x.bytes, { level: 0 }];
       }
       files["layout.json"] = strToU8(serializeLayout(layout));
-      this.hooks.download(zipSync(files) as Uint8Array<ArrayBuffer>, "casefinity-plates.zip", "application/zip");
+      this.hooks.download(zipSync(files) as Uint8Array<ArrayBuffer>, exportName(layout, "plates.zip"), "application/zip");
       this.status.textContent = `Exported ${this.plan.plates.length} plate(s) in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
     } catch (err) {
       console.error(err);

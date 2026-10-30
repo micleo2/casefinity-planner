@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const { newBin, DEFAULT_SETTINGS } = await import("../src/bins.ts");
-const { canPlace, emptyLayout, firstFreeSpot, parseLayout, runChecks, serializeLayout, slidingGroups } = await import("../src/layout.ts");
+const { canPlace, emptyLayout, exportName, firstFreeSpot, parseLayout, runChecks, serializeLayout, slidingGroups } = await import("../src/layout.ts");
 const { groupParts } = await import("../src/export.ts");
 const { newItem } = await import("../src/sizing.ts");
 
@@ -101,6 +101,15 @@ test("bins left outside after shrinking the area fail", () => {
   const l = layoutWith(6, 6, [[4, 4, 2, 2]]);
   l.settings.areaX = 5;
   assert.ok(runChecks(l).some((c) => c.level === "fail" && c.text.includes("extend past the area")));
+});
+
+test("the project name names the exports, and survives a round trip", () => {
+  const l = emptyLayout();
+  assert.equal(exportName(l, "plates.zip"), "casefinity-plates.zip");
+  l.name = "  Soldering kit / v2 ";
+  assert.equal(exportName(l, "plates.zip"), "Soldering-kit-v2-plates.zip");
+  assert.equal(parseLayout(serializeLayout(l)).name, "Soldering kit / v2");
+  assert.equal(parseLayout(JSON.stringify({ version: 1, bins: [] })).name, "");
 });
 
 test("serialize/parse round-trips and sanitizes", () => {

@@ -207,7 +207,13 @@ export function runChecks(layout: Layout): Check[] {
 // ---- persistence -----------------------------------------------------------
 
 export function emptyLayout(): Layout {
-  return { version: 1, settings: { ...DEFAULT_SETTINGS }, bins: [], items: [] };
+  return { version: 1, name: "", settings: { ...DEFAULT_SETTINGS }, bins: [], items: [] };
+}
+
+/** An export's file name from the project name, e.g. "Soldering kit" → "Soldering-kit-plates.zip". */
+export function exportName(layout: Layout, suffix: string): string {
+  const base = layout.name.trim().replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "-");
+  return `${base || "casefinity"}-${suffix}`;
 }
 
 const BIN_TYPES: BinType[] = ["no-lid", "with-lid", "double-sided", "solid"];
@@ -279,7 +285,8 @@ export function parseLayout(json: string): Layout {
   });
   const known = new Set(items.map((it) => it.id));
   for (const b of bins) if (b.itemId && !known.has(b.itemId)) b.itemId = null;
-  return { version: 1, settings, bins, items };
+  const name = typeof raw.name === "string" ? raw.name.trim().slice(0, 60) : "";
+  return { version: 1, name, settings, bins, items };
 }
 
 export function serializeLayout(layout: Layout): string {

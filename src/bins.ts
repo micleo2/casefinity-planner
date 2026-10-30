@@ -70,6 +70,8 @@ export interface Bin {
 
 export interface Layout {
   version: 1;
+  /** Project name, shown in the header and used to name exports; "" if unnamed. */
+  name: string;
   settings: Settings;
   bins: Bin[];
   items: Item[];

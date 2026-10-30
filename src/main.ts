@@ -14,7 +14,7 @@ import {
   newBin,
 } from "./bins.ts";
 import type { Bin, BinType, Layout, Settings } from "./bins.ts";
-import { canPlace, emptyLayout, fitsBed, parseLayout, runChecks, serializeLayout } from "./layout.ts";
+import { canPlace, emptyLayout, exportName, fitsBed, parseLayout, runChecks, serializeLayout } from "./layout.ts";
 import { GridEditor } from "./grid.ts";
 import { ItemsPanel } from "./itemsPanel.ts";
 import { AutoPackCard } from "./autopack.ts";
@@ -95,7 +95,21 @@ const zeroAllowed = new Set<keyof Settings>(["draftAngle", "sideBorderUnits", "f
 /** Settings that feed casefinity's perimeter formula: editing one recomputes the area. */
 const caseKeys = new Set<keyof Settings>(["caseLength", "caseWidth", "sideBorderUnits", "frontBorderUnits"]);
 
+// ---- project name (header) -------------------------------------------------------
+
+const projectName = $<HTMLInputElement>("project-name");
+projectName.addEventListener("input", () => {
+  layout.name = projectName.value;
+  update();
+});
+projectName.addEventListener("change", () => {
+  layout.name = projectName.value.trim();
+  projectName.value = layout.name;
+  update(true);
+});
+
 function syncSettingInputs() {
+  projectName.value = layout.name;
   for (const key of settingKeys) $<HTMLInputElement>(key).value = String(layout.settings[key]);
   const s = layout.settings;
   presetSelect.value = CASE_PRESETS.find((p) => p.length === s.caseLength && p.width === s.caseWidth)?.label ?? "";
@@ -445,7 +459,7 @@ function download(data: BlobPart, name: string, type: string) {
 }
 
 $("save-layout").addEventListener("click", () => {
-  download(serializeLayout(layout), "casefinity-layout.json", "application/json");
+  download(serializeLayout(layout), exportName(layout, "layout.json"), "application/json");
 });
 
 const loadFile = $<HTMLInputElement>("load-file");

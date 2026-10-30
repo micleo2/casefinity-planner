@@ -322,13 +322,16 @@ const binCount = (await bins()).length;
 const platedParts = await js(`[...document.querySelectorAll("#plates .part-num")].map((t) => +t.textContent).sort((a, b) => a - b)`);
 assert.deepEqual(platedParts, Array.from({ length: binCount }, (_, i) => i + 1), "every bin on exactly one plate");
 await poll(() => js(`!document.getElementById("export-plates").disabled`));
+// the project name names the export
+await js(`(() => { const i = document.getElementById("project-name"); i.value = "Test Kit"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); })()`);
 await js(`document.getElementById("export-plates").click()`);
 await poll(() => text("plates-status").then((t) => /Exported|failed/.test(t)), 240000);
 const plateStatus = await text("plates-status");
 assert.match(plateStatus, /Exported/, plateStatus);
-await poll(() => readdirSync(out).includes("casefinity-plates.zip"));
+await poll(() => readdirSync(out).includes("Test-Kit-plates.zip"));
 await sleep(500);
-const plateZip = unzipSync(readFileSync(join(out, "casefinity-plates.zip")));
+const plateZip = unzipSync(readFileSync(join(out, "Test-Kit-plates.zip")));
+assert.equal(JSON.parse(strFromU8(unzipSync(readFileSync(join(out, "Test-Kit-plates.zip")))["layout.json"])).name, "Test Kit");
 const plateFiles = Object.keys(plateZip).filter((n) => n.startsWith("plates/"));
 assert.equal(plateFiles.length, plateCount);
 for (const n of plateFiles) {
