@@ -159,7 +159,7 @@ export class GridEditor {
    * The item's footprint inside its bin, to scale: where placeInBin puts each
    * copy (bin-local mm, +Y = back = up on screen). Boxes are rectangles,
    * standing cylinders circles, and lying cylinders — a rectangle from above —
-   * get a line along their axis.
+   * are shaded like a roll (dark rims, light down the axis).
    */
   private drawItems(g: SVGGElement, b: Bin, layout: Layout, cx: number, cy: number) {
     const item = b.itemId ? layout.items.find((it) => it.id === b.itemId) : undefined;
@@ -177,11 +177,9 @@ export class GridEditor {
         continue;
       }
       const [sx, sy] = so.kind === "box" ? [so.sx, so.sy] : so.axis === "x" ? [so.len, 2 * so.r] : [2 * so.r, so.len];
-      g.append(el("rect", { class: "item-fp", x: px - (sx * k) / 2, y: py - (sy * k) / 2, width: sx * k, height: sy * k, rx: 1.5 }));
-      if (so.kind === "cyl") {
-        const [dx, dy] = so.axis === "x" ? [(sx * k) / 2, 0] : [0, (sy * k) / 2];
-        g.append(el("path", { class: "item-axis", d: `M${px - dx} ${py - dy}L${px + dx} ${py + dy}` }));
-      }
+      const rect = el("rect", { class: "item-fp", x: px - (sx * k) / 2, y: py - (sy * k) / 2, width: sx * k, height: sy * k, rx: 1.5 });
+      if (so.kind === "cyl") rect.style.fill = `url(#roll-${so.axis})`;
+      g.append(rect);
     }
   }
 
@@ -196,6 +194,16 @@ export class GridEditor {
     svg.replaceChildren();
     svg.setAttribute("viewBox", `0 0 ${W + 2 * MARGIN} ${H + 2 * MARGIN}`);
 
+    // Roll shading for lying cylinders: dark at both rims, light along the axis
+    const defs = el("defs", {});
+    for (const axis of ["x", "y"]) {
+      const grad = el("linearGradient", { id: `roll-${axis}`, x1: 0, y1: 0, x2: axis === "x" ? 0 : 1, y2: axis === "x" ? 1 : 0 });
+      for (const [offset, color, opacity] of [[0, "#b07d22", 0.75], [0.45, "#f3dfb2", 0.55], [1, "#b07d22", 0.75]] as const) {
+        grad.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }));
+      }
+      defs.append(grad);
+    }
+    svg.append(defs);
     svg.append(el("rect", { class: "area", x: MARGIN, y: MARGIN, width: W, height: H }));
     const lines = el("path", {
       class: "cell",
