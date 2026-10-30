@@ -67,17 +67,71 @@ export function fitsBed(bin: Bin, s: Settings): boolean {
 
 export interface Check {
   ok: boolean;
-  /** Warnings don't make the layout invalid; failures do. */
-  level: "ok" | "warn" | "fail";
+  /** Failures make the layout invalid; warnings need a look; info is just a note. */
+  level: "ok" | "info" | "warn" | "fail";
   text: string;
 }
 
-const list = (ns: number[]) => ns.map((n) => n + 1).join(", ");
+export type Direction = "left" | "right" | "up" | "down";
+const STEP: Record<Direction, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+
+/**
+ * Groups of bins that can slide one grid unit in some direction — the
+ * transport-safety test. A bin moving in a direction has to push every bin in
+ * its way, and those push theirs; if that chain never reaches a case wall, the
+ * whole group can shift into empty space. Only the smallest group per
+ * direction is kept (a bigger one containing it adds nothing).
+ */
+export function slidingGroups(layout: Layout): { dir: Direction; bins: Bin[] }[] {
+  const { areaX, areaY } = layout.settings;
+  const grid = occupancy(layout);
+  const byId = new Map(layout.bins.map((b) => [b.id, b]));
+  const found: { dir: Direction; ids: Set<string> }[] = [];
+  for (const dir of Object.keys(STEP) as Direction[]) {
+    const [dx, dy] = STEP[dir];
+    const groups: Set<string>[] = [];
+    for (const start of layout.bins) {
+      if (!inBounds(start, layout.settings)) continue;
+      const group = new Set([start.id]);
+      const queue = [start];
+      let blocked = false;
+      while (queue.length && !blocked) {
+        const b = queue.pop()!;
+        // The strip of cells just ahead of the bin's leading face
+        const cells: [number, number][] = dx
+          ? Array.from({ length: b.unitsY }, (_, i) => [dx > 0 ? b.col + b.unitsX : b.col - 1, b.row + i])
+          : Array.from({ length: b.unitsX }, (_, i) => [b.col + i, dy > 0 ? b.row + b.unitsY : b.row - 1]);
+        for (const [c, r] of cells) {
+          if (c < 0 || r < 0 || c >= areaX || r >= areaY) {
+            blocked = true;
+            break;
+          }
+          const id = grid[r][c];
+          if (id && !group.has(id)) {
+            group.add(id);
+            queue.push(byId.get(id)!);
+          }
+        }
+      }
+      if (!blocked) groups.push(group);
+    }
+    const minimal = groups.filter((g) => !groups.some((o) => o !== g && o.size < g.size && [...o].every((id) => g.has(id))));
+    const seen = new Set<string>();
+    for (const g of minimal) {
+      const key = [...g].sort().join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      found.push({ dir, ids: g });
+    }
+  }
+  return found.map(({ dir, ids }) => ({ dir, bins: [...ids].map((id) => byId.get(id)!) }));
+}
 
 export function runChecks(layout: Layout): Check[] {
   const s = layout.settings;
   const checks: Check[] = [];
   const pass = (text: string) => checks.push({ ok: true, level: "ok", text });
+  const info = (text: string) => checks.push({ ok: true, level: "info", text });
   const warn = (text: string) => checks.push({ ok: false, level: "warn", text });
   const fail = (text: string) => checks.push({ ok: false, level: "fail", text });
 
@@ -89,28 +143,20 @@ export function runChecks(layout: Layout): Check[] {
   const outside = layout.bins.filter((b) => !inBounds(b, s));
   if (outside.length) fail(`${outside.length} bin(s) extend past the area — shrink or move them.`);
 
-  const grid = occupancy(layout);
-  const rowFull = grid.map((r) => r.every(Boolean));
-  const rowEmpty = grid.map((r) => r.every((c) => !c));
-  const colFull = Array.from({ length: s.areaX }, (_, c) => grid.every((r) => r[c]));
-  const colEmpty = Array.from({ length: s.areaX }, (_, c) => grid.every((r) => !r[c]));
-  const partialRows = rowFull.flatMap((f, i) => (f || rowEmpty[i] ? [] : [i]));
-  const partialCols = colFull.flatMap((f, i) => (f || colEmpty[i] ? [] : [i]));
-
-  if (partialRows.length === 0) {
-    pass("Transport-safe: no partial rows — every row is full or empty, so the bins brace wall to wall.");
-  } else if (partialCols.length === 0) {
-    pass("Transport-safe: no partial columns — every column is full or empty, so the bins brace wall to wall.");
+  const sliding = slidingGroups(layout);
+  if (sliding.length === 0) {
+    pass("Transport-safe: no bin can slide.");
   } else {
-    fail(
-      `Not transport-safe: partly filled rows (${list(partialRows)}) and columns (${list(partialCols)}). ` +
-      "Fill whole rows or whole columns so bins can't shift.",
-    );
+    const name = (b: Bin) => `${b.title || "bin"} (${b.unitsX}×${b.unitsY})`;
+    const shown = sliding.slice(0, 4).map(({ dir, bins }) =>
+      `${bins.map(name).join(" + ")} can slide ${dir}`);
+    fail(`Not transport-safe: ${shown.join("; ")}${sliding.length > 4 ? `; and ${sliding.length - 4} more` : ""}. ` +
+      "Fill the gap so nothing can shift.");
   }
 
-  const empty = grid.flat().filter((c) => !c).length;
+  const empty = occupancy(layout).flat().filter((c) => !c).length;
   if (empty === 0) pass("All grid units filled.");
-  else warn(`${empty} of ${s.areaX * s.areaY} grid units empty.`);
+  else info(`${empty} of ${s.areaX * s.areaY} grid units empty.`);
 
   const tooBig = layout.bins.filter((b) => !fitsBed(b, s));
   if (tooBig.length) {

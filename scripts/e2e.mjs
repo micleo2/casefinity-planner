@@ -136,10 +136,11 @@ console.log("ok   select 3×5 and title it");
 await key("Delete");
 assert.equal((await bins()).length, 16);
 assert.ok(await js(`[...document.querySelectorAll("#checks .check-line.fail")].some((p) => p.textContent.startsWith("Not transport-safe"))`));
-// failures are listed before warnings (the empty grid units)
+// failures are listed first, then warnings, then notes (the empty grid units)
+const rank = { fail: 0, warn: 1, info: 2 };
 const levels = await js(`[...document.querySelectorAll("#checks .check-line")].map((p) => p.classList[1])`);
-assert.deepEqual(levels, [...levels].sort((x, y) => Number(x === "warn") - Number(y === "warn")));
-assert.ok(levels.includes("fail") && levels.includes("warn"), levels.join());
+assert.deepEqual(levels, [...levels].sort((x, y) => rank[x] - rank[y]));
+assert.ok(levels.includes("fail") && levels.includes("info"), levels.join());
 await key("z", "KeyZ", 2);
 assert.equal((await bins()).length, 17);
 await key("z", "KeyZ", 2 | 8);

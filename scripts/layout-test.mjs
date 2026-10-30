@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const { newBin, DEFAULT_SETTINGS } = await import("../src/bins.ts");
-const { canPlace, emptyLayout, firstFreeSpot, parseLayout, runChecks, serializeLayout } = await import("../src/layout.ts");
+const { canPlace, emptyLayout, firstFreeSpot, parseLayout, runChecks, serializeLayout, slidingGroups } = await import("../src/layout.ts");
 const { groupParts } = await import("../src/export.ts");
 const { newItem } = await import("../src/sizing.ts");
 
@@ -35,17 +35,36 @@ test("full rows are transport-safe", () => {
   assert.ok(c.includes("ok: All grid units filled."));
 });
 
-test("full columns are transport-safe even with partial rows", () => {
+test("full columns next to empty ones can slide into them", () => {
+  // the old full-or-empty-columns rule called this safe; both bins can shift right
   const l = layoutWith(4, 4, [[0, 0, 1, 4], [1, 0, 1, 4]]);
   const checks = runChecks(l);
-  assert.ok(checks.some((c) => c.level === "ok" && c.text.includes("no partial columns")));
-  assert.ok(checks.some((c) => c.level === "warn" && c.text.startsWith("8 of 16")));
+  const fail = checks.find((c) => c.level === "fail");
+  assert.match(fail.text, /can slide right/);
+  assert.ok(checks.some((c) => c.level === "info" && c.text.startsWith("8 of 16")));
 });
 
-test("partial rows and columns fail and are listed 1-based", () => {
-  const l = layoutWith(4, 4, [[0, 0, 2, 2]]);
-  const fail = runChecks(l).find((c) => c.level === "fail");
-  assert.match(fail.text, /rows \(1, 2\) and columns \(1, 2\)/);
+test("a pinwheel around a hole is locked, though no row or column is full", () => {
+  // 3×3 with the centre empty: each bin's way into the hole is blocked by the next
+  const l = layoutWith(3, 3, [[0, 0, 2, 1], [2, 0, 1, 2], [1, 2, 2, 1], [0, 1, 1, 2]]);
+  assert.deepEqual(slidingGroups(l), []);
+  const checks = runChecks(l);
+  assert.ok(!checks.some((c) => c.level === "fail"), checks.map((c) => c.text).join("\n"));
+  assert.ok(checks.some((c) => c.level === "info" && c.text === "1 of 9 grid units empty."));
+});
+
+test("sliding names the smallest group that can move, and which way", () => {
+  // a row of three with the right-hand cell empty: the middle bin alone can slide right
+  const l = layoutWith(3, 1, [[0, 0, 1, 1], [1, 0, 1, 1]]);
+  l.bins[0].title = "A";
+  l.bins[1].title = "B";
+  const groups = slidingGroups(l);
+  assert.deepEqual(groups.map((g) => [g.dir, g.bins.map((b) => b.title)]), [["right", ["B"]]]);
+  assert.match(runChecks(l).find((c) => c.level === "fail").text, /B \(1×1\) can slide right/);
+  // a bin pushing its neighbour: the pair is the group
+  const pair = layoutWith(4, 1, [[0, 0, 1, 1], [1, 0, 1, 1]]);
+  const right = slidingGroups(pair).filter((g) => g.dir === "right");
+  assert.deepEqual(right.map((g) => g.bins.length), [1]);
 });
 
 test("print bed check", () => {
@@ -54,7 +73,7 @@ test("print bed check", () => {
   const checks = runChecks(l);
   // 18×15 = 270 mm doesn't fit a 256 bed; 11×15 + 1.3 = 166 mm does
   assert.ok(checks.some((c) => c.level === "fail" && c.text.includes("18×2")));
-  assert.ok(!checks.some((c) => c.text.includes("11×2")));
+  assert.ok(!checks.some((c) => c.text.startsWith("Doesn't fit the print bed") && c.text.includes("11×2")));
 });
 
 test("switched-off items survive a round trip, and their bins are flagged", () => {

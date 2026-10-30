@@ -356,9 +356,10 @@ document.addEventListener("keydown", (e) => {
 
 // ---- render ----------------------------------------------------------------------
 
-/** The usual error (circle) and warning (triangle) marks, drawn so they don't depend on the font. */
+/** The usual error (circle), warning (triangle) and info (ⓘ) marks, drawn so they don't depend on the font. */
 const CHECK_ICONS: Record<string, string> = {
   fail: `<svg class="check-icon" viewBox="0 0 16 16" role="img" aria-label="Error"><circle cx="8" cy="8" r="7.5" fill="currentColor"/><path d="M8 4v5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="11.6" r="1" fill="#fff"/></svg>`,
+  info: `<svg class="check-icon" viewBox="0 0 16 16" role="img" aria-label="Note"><circle cx="8" cy="8" r="6.9" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="4.9" r=".95" fill="currentColor"/><path d="M8 7.3v4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
   warn: `<svg class="check-icon" viewBox="0 0 16 16" role="img" aria-label="Warning"><path d="M8 1.2 15.4 14.5H.6Z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12.2" r=".9" fill="#fff"/></svg>`,
 };
 
@@ -404,9 +405,10 @@ function render() {
     ($("bin-rotate") as HTMLButtonElement).disabled = bin.unitsX === bin.unitsY;
   }
 
-  // Only problems, under the grid: failures first, then warnings.
+  // Only what needs saying, under the grid: failures, then warnings, then notes.
+  const rank = { fail: 0, warn: 1, info: 2, ok: 3 };
   const problems = runChecks(layout).filter((c) => c.level !== "ok");
-  problems.sort((a, b) => Number(a.level === "warn") - Number(b.level === "warn"));
+  problems.sort((a, b) => rank[a.level] - rank[b.level]);
   $("checks").replaceChildren(
     ...problems.map((c) => {
       const p = document.createElement("p");

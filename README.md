@@ -45,8 +45,10 @@ npm run build      # static site in dist/ — host anywhere
   `Esc` deselect, `Ctrl+Z` / `Ctrl+Shift+Z` undo / redo.
 - **Bin** — title (used in file names), size, type (no lid / with lid / double-sided / solid block), height
   override, lid label, hopper fillet for double-sided bins, pull tab.
-- **Checks** — transport safety (every row *or* every column completely full or empty, per the guide's
-  “major issue”), empty grid units, print-bed fit, rectangular double-sided hoppers.
+- **Checks** (under the grid) — only what needs saying: failures, then warnings, then notes. Transport safety is
+  exact: a layout fails if any bin, or group of bins pushing each other, can slide into empty space (named, with
+  the direction); a gap boxed in so nothing can move is fine and only noted. Also print-bed fit, items that
+  outgrew their bin, items switched off that still have a bin, and rectangular double-sided hoppers.
 - **Export** — one ZIP with `stl/`, optional `step/` and `3mf/`, plus `layout.json`. Identical bins are built
   once and named with a quantity, e.g. `02x02_no-lid_x4.stl`.
 - The layout autosaves in the browser; *Save / Load layout* moves it between machines.
