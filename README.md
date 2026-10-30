@@ -28,11 +28,12 @@ npm run build      # static site in dist/ — host anywhere
 - **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), each part
   numbered. *Export ZIP* gives one 3MF per plate with every body in place, a 3MF of lids for each bin that has
   them, and `layout.json`.
-- **Area** — the perimeter cavity in grid units (15 mm squares). *Case preset* starts on `--Custom--` with casefinity's default
+- **Case bar** — the active case is summarised in the header on every page; *Edit* opens the shared case
+  settings (case, geometry, print bed). The case is the perimeter cavity in grid units (15 mm squares). *Case preset* starts on `--Custom--` with casefinity's default
   perimeter (350 × 250 mm → 19 × 13); pick Apache 3800 (→ 21 × 14) or Apache 4800 (→ 26 × 18), or type your case's
   inside length/width. Grid units follow casefinity's perimeter formula `floor(mm ÷ P) − border units`; the border
-  units (default 4 side / 3 front, casefinity's “Side / Front border bins”) must match your perimeter. Also pitch, bin height, wall, clearance.
-  *Advanced* holds the remaining casefinity parameters; keep the defaults for compatibility with casefinity.net.
+  units (default 4 side / 3 front, casefinity's “Side / Front border bins”) must match your perimeter.
+  *Geometry* holds pitch, bin height, wall, clearance and the other casefinity parameters.
 - **Grid** — drag across empty cells to draw a bin; drag a bin to move it; drag the blue edge handles to resize.
   Top of the grid is the back (+Y) of the case, where each bin's pull tab sits.
   Keys: `R` rotate (swaps the grid-unit counts — bins are handed and never mirrored), `Del` delete, arrows move,

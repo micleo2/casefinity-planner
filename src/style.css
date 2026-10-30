@@ -137,7 +137,18 @@ footer a { color: var(--muted); }
 }
 
 /* ---- steps ------------------------------------------------------------------ */
-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
+header h1 { margin: 0; }
+header .steps { margin-left: auto; }
+/* The active case, on every page; opens the shared case settings */
+.case-chip { display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 999px; background: var(--card); font-size: 14px; color: var(--text); }
+.case-chip .case-edit { color: var(--accent); font-weight: 600; }
+.case-chip[aria-expanded="true"] { border-color: var(--accent); }
+.case-panel { margin-bottom: 20px; }
+.case-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 28px; align-items: start; }
+.case-cols h2 { margin-top: 4px; }
+.case-cols details { margin-top: 4px; }
+.case-done { margin-top: 8px; }
 .steps { display: flex; gap: 8px; }
 .steps a {
   padding: 8px 16px; border-radius: 999px; border: 1px solid var(--input-border);

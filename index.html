@@ -7,15 +7,73 @@
   </head>
   <body>
     <header>
-      <div>
-        <h1>Casefinity Planner</h1>
-      </div>
+      <h1>Casefinity Planner</h1>
+      <button type="button" id="case-toggle" class="case-chip" aria-expanded="false" aria-controls="case-panel">
+        <span id="case-summary"></span><span class="case-edit">Edit ▾</span>
+      </button>
       <nav class="steps" aria-label="Steps">
         <a href="#items" id="step-items">1 Items</a>
         <a href="#pack" id="step-pack">2 Pack</a>
         <a href="#print" id="step-print">3 Print</a>
       </nav>
     </header>
+    <section class="card case-panel" id="case-panel" hidden>
+      <div class="case-cols">
+        <div>
+          <h2>Case</h2>
+          <label>Case preset<select id="case-preset"></select></label>
+          <div class="row2">
+            <label>Case length [mm]<input id="caseLength" type="number" min="60" max="900" step="0.001" /></label>
+            <label>Case width [mm]<input id="caseWidth" type="number" min="60" max="900" step="0.001" /></label>
+          </div>
+          <div class="row2">
+            <label>Side border [grid units]<input id="sideBorderUnits" type="number" min="0" max="10" step="1" /></label>
+            <label>Front border [grid units]<input id="frontBorderUnits" type="number" min="0" max="10" step="1" /></label>
+          </div>
+          <p class="hint" id="case-hint"></p>
+          <div class="row2">
+            <label>Grid units X<input id="areaX" type="number" min="1" max="60" step="1" /></label>
+            <label>Grid units Y<input id="areaY" type="number" min="1" max="60" step="1" /></label>
+          </div>
+          <p class="hint" id="area-hint"></p>
+        </div>
+        <div>
+          <details>
+            <summary>Geometry (casefinity defaults)</summary>
+            <div class="row3">
+              <label>Pitch P [mm]<input id="gridSpacing" type="number" min="10" max="50" step="0.5" /></label>
+              <label>Bin height [mm]<input id="overallHeight" type="number" min="20" max="300" step="1" /></label>
+              <label>Wall [mm]<input id="wallThick" type="number" min="0.8" max="3" step="0.1" /></label>
+            </div>
+            <label>Clearance c [mm]<input id="clear" type="number" min="0" max="0.5" step="0.05" /></label>
+            <p class="hint" id="clear-hint"></p>
+            <div class="row3">
+              <label>Floor [mm]<input id="floorThick" type="number" min="0.6" max="4" step="0.2" /></label>
+              <label>Rib width [mm]<input id="ribWidth" type="number" min="0.6" max="4.5" step="0.1" /></label>
+              <label>Rib depth [mm]<input id="wallBump" type="number" min="0.5" max="3" step="0.1" /></label>
+            </div>
+            <div class="row3">
+              <label>Rib draft [°]<input id="draftAngle" type="number" min="0" max="5" step="0.5" /></label>
+              <label>Pull tab [mm]<input id="pullTabHeight" type="number" min="0.5" max="15" step="0.5" /></label>
+              <button id="reset-advanced" type="button" class="ghost">Reset</button>
+            </div>
+            <p class="hint">
+              These must match whatever your perimeter and other bins were made with.
+            </p>
+          </details>
+        </div>
+        <div>
+          <h2>Print bed</h2>
+          <div class="row3">
+            <label>X [mm]<input id="bedX" type="number" min="1" /></label>
+            <label>Y [mm]<input id="bedY" type="number" min="1" /></label>
+            <label>Z [mm]<input id="bedZ" type="number" min="1" /></label>
+          </div>
+          <button type="button" id="case-done" class="case-done">Done</button>
+        </div>
+      </div>
+    </section>
+
 
     <div id="items-page" class="items-page" hidden>
       <section class="card items-card">
@@ -87,54 +145,6 @@
           <p class="hint" id="autopack-summary"></p>
           <button id="autopack-run" type="button" class="primary">Find layouts</button>
           <div id="autopack-options" class="options"></div>
-        </section>
-
-        <section class="card">
-          <h2>Area</h2>
-          <div class="row2">
-            <label>Grid units X<input id="areaX" type="number" min="1" max="60" step="1" /></label>
-            <label>Grid units Y<input id="areaY" type="number" min="1" max="60" step="1" /></label>
-          </div>
-          <label>Case preset<select id="case-preset"></select></label>
-          <div class="row2">
-            <label>Case length [mm]<input id="caseLength" type="number" min="60" max="900" step="0.001" /></label>
-            <label>Case width [mm]<input id="caseWidth" type="number" min="60" max="900" step="0.001" /></label>
-          </div>
-          <div class="row2">
-            <label>Side border [grid units]<input id="sideBorderUnits" type="number" min="0" max="10" step="1" /></label>
-            <label>Front border [grid units]<input id="frontBorderUnits" type="number" min="0" max="10" step="1" /></label>
-          </div>
-          <p class="hint" id="case-hint"></p>
-          <p class="hint" id="area-hint"></p>
-          <details>
-            <summary>Advanced (casefinity defaults)</summary>
-            <div class="row3">
-              <label>Pitch P [mm]<input id="gridSpacing" type="number" min="10" max="50" step="0.5" /></label>
-              <label>Bin height [mm]<input id="overallHeight" type="number" min="20" max="300" step="1" /></label>
-              <label>Wall [mm]<input id="wallThick" type="number" min="0.8" max="3" step="0.1" /></label>
-            </div>
-            <label>Clearance c [mm]<input id="clear" type="number" min="0" max="0.5" step="0.05" /></label>
-            <p class="hint" id="clear-hint"></p>
-            <div class="row3">
-              <label>Floor [mm]<input id="floorThick" type="number" min="0.6" max="4" step="0.2" /></label>
-              <label>Rib width [mm]<input id="ribWidth" type="number" min="0.6" max="4.5" step="0.1" /></label>
-              <label>Rib depth [mm]<input id="wallBump" type="number" min="0.5" max="3" step="0.1" /></label>
-            </div>
-            <div class="row3">
-              <label>Rib draft [°]<input id="draftAngle" type="number" min="0" max="5" step="0.5" /></label>
-              <label>Pull tab [mm]<input id="pullTabHeight" type="number" min="0.5" max="15" step="0.5" /></label>
-              <button id="reset-advanced" type="button" class="ghost">Reset</button>
-            </div>
-            <p class="hint">
-              These must match whatever your perimeter and other bins were made with.
-            </p>
-          </details>
-          <h2>Print bed</h2>
-          <div class="row3">
-            <label>X [mm]<input id="bedX" type="number" min="1" /></label>
-            <label>Y [mm]<input id="bedY" type="number" min="1" /></label>
-            <label>Z [mm]<input id="bedZ" type="number" min="1" /></label>
-          </div>
         </section>
 
         <section class="card" id="bin-card" hidden>

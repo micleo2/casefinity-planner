@@ -118,6 +118,15 @@ for (const key of settingKeys) {
   });
 }
 
+// The Case bar: a summary chip on every page that opens the shared case settings
+const caseToggle = $<HTMLButtonElement>("case-toggle");
+function showCasePanel(open: boolean) {
+  $("case-panel").hidden = !open;
+  caseToggle.setAttribute("aria-expanded", String(open));
+}
+caseToggle.addEventListener("click", () => showCasePanel($("case-panel").hidden));
+$("case-done").addEventListener("click", () => showCasePanel(false));
+
 const presetSelect = $<HTMLSelectElement>("case-preset");
 presetSelect.add(new Option("--Custom--", ""));
 for (const p of CASE_PRESETS) presetSelect.add(new Option(p.label, p.label));
@@ -353,6 +362,10 @@ function render() {
     `the border takes ${s.sideBorderUnits} × ${s.frontBorderUnits}, leaving ${cx} × ${cy} for bins.` +
     (preset ? ` Case depth ${preset.depth} mm.` : "");
   caseHint.className = cx >= 1 && cy >= 1 && cx <= 60 && cy <= 60 ? "hint" : "hint bad";
+  const mm = (n: number) => String(+n.toFixed(1));
+  $("case-summary").textContent =
+    `${preset?.label ?? "Custom case"} · ${mm(s.caseLength)} × ${mm(s.caseWidth)} mm · ` +
+    `${s.areaX} × ${s.areaY} grid units · bed ${mm(s.bedX)} × ${mm(s.bedY)}`;
   $("area-hint").textContent =
     `Grid: ${s.areaX} × ${s.areaY} grid units = ${+(s.areaX * s.gridSpacing).toFixed(2)} × ${+(s.areaY * s.gridSpacing).toFixed(2)} mm.`;
   $("clear-hint").textContent =
