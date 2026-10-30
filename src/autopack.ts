@@ -6,7 +6,7 @@ import type { Demand, PackOption } from "./pack.ts";
 import { sizeItem } from "./sizing.ts";
 
 /**
- * The Auto-pack card on the Pack page: size every item, find the best
+ * Auto-pack, inside the Items panel on the Pack page: size every item, find the best
  * full-columns and full-rows layouts, draw each as a thumbnail and apply the
  * chosen one. Item bins keep their snug size; spare grid units become spacers
  * (pack.ts can also grow bins into them, but that's switched off for now).
@@ -67,7 +67,7 @@ export class AutoPackCard {
     this.key = packKey(layout);
     const name = (id: string) => layout.items.find((it) => it.id === id)?.name || "unnamed item";
     const problems = [
-      ...(broken.length ? [`Can't size: ${broken.join(", ")} (see the Items page).`] : []),
+      ...(broken.length ? [`Can't size: ${broken.join(", ")} (open them above).`] : []),
       ...(result.unplaceable.length ? [`Doesn't fit: ${result.unplaceable.map(name).join(", ")}.`] : []),
     ];
     this.renderOptions(problems);
@@ -87,8 +87,8 @@ export class AutoPackCard {
     if (!this.options.length && !this.list.childElementCount) {
       this.summary.className = "hint";
       this.summary.textContent = n === 0
-        ? "Add items on the Items page, then auto-pack them into transport-safe layouts."
-        : `${n} item${n === 1 ? "" : "s"} from the Items page. Every layout fills whole rows or columns.`;
+        ? "Add items above, then auto-pack them into transport-safe layouts."
+        : `Lays out all ${n} item${n === 1 ? "" : "s"}; every layout fills whole rows or columns.`;
     }
   }
 

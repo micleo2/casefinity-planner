@@ -31,6 +31,20 @@ export function canPlace(layout: Layout, r: Rect, ignoreId?: string): boolean {
     layout.bins.every((b) => b.id === ignoreId || !overlaps(r, b));
 }
 
+/** The first free spot for a unitsX × unitsY bin, either way round: back row first, left to right. */
+export function firstFreeSpot(layout: Layout, unitsX: number, unitsY: number): Rect | null {
+  const { areaX, areaY } = layout.settings;
+  for (let row = 0; row < areaY; row++) {
+    for (let col = 0; col < areaX; col++) {
+      for (const [ux, uy] of [[unitsX, unitsY], [unitsY, unitsX]]) {
+        const r = { col, row, unitsX: ux, unitsY: uy };
+        if (canPlace(layout, r)) return r;
+      }
+    }
+  }
+  return null;
+}
+
 /** Occupancy grid [row][col] → bin id, or null. Out-of-bounds bins are clipped. */
 export function occupancy(layout: Layout): (string | null)[][] {
   const { areaX, areaY } = layout.settings;
@@ -126,11 +140,6 @@ export function runChecks(layout: Layout): Check[] {
   }
 
   const items = new Map(layout.items.map((it) => [it.id, it]));
-  const placed = new Set(layout.bins.map((b) => b.itemId));
-  const missing = layout.items.filter((it) => !placed.has(it.id));
-  if (missing.length) {
-    warn(`Not in the layout yet: ${missing.map((it) => it.name || "unnamed item").join(", ")}.`);
-  }
   const cramped = layout.bins.filter((b) => {
     const item = b.itemId ? items.get(b.itemId) : undefined;
     if (!item) return false;

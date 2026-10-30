@@ -17,7 +17,7 @@ import type { Bin, BinType, Layout, Settings } from "./bins.ts";
 import { canPlace, emptyLayout, fitsBed, parseLayout, runChecks, serializeLayout } from "./layout.ts";
 import { GridEditor } from "./grid.ts";
 import { exportZip, groupParts } from "./export.ts";
-import { ItemsPage } from "./itemsPage.ts";
+import { ItemsPanel } from "./itemsPanel.ts";
 import { AutoPackCard } from "./autopack.ts";
 import { PrintPage } from "./printPage.ts";
 import { placeInBin, sizeItem } from "./sizing.ts";
@@ -74,7 +74,7 @@ function restore(index: number) {
   if (!selected()) selectedId = null;
   syncSettingInputs();
   syncBinInputs();
-  itemsPage.rebuild();
+  itemsPanel.rebuild();
   update();
 }
 
@@ -123,6 +123,7 @@ const caseToggle = $<HTMLButtonElement>("case-toggle");
 function showCasePanel(open: boolean) {
   $("case-panel").hidden = !open;
   caseToggle.setAttribute("aria-expanded", String(open));
+  caseToggle.querySelector(".case-edit")!.textContent = open ? "Edit ▴" : "Edit ▾";
 }
 caseToggle.addEventListener("click", () => showCasePanel($("case-panel").hidden));
 $("case-done").addEventListener("click", () => showCasePanel(false));
@@ -183,6 +184,16 @@ function syncBinInputs() {
   if (!bin && view === "bin") setView("case");
   $("bin-error").hidden = true;
   if (!bin) return;
+  // The item this bin holds, linking back to it in the Items panel
+  const item = bin.itemId ? layout.items.find((it) => it.id === bin.itemId) : undefined;
+  const holds = $("bin-item");
+  holds.hidden = !item;
+  if (item) {
+    const dims = item.shape === "box" ? `${item.length} × ${item.width} × ${item.height}` : `⌀${item.diameter} × ${item.height}`;
+    const link = Object.assign(document.createElement("button"), { type: "button", className: "linklike", textContent: item.name || "Unnamed item" });
+    link.addEventListener("click", () => itemsPanel.open(item.id));
+    holds.replaceChildren("Holds ", link, ` (${dims} mm${item.qty > 1 ? `, ×${item.qty}` : ""})`);
+  }
   binInputs.title.value = bin.title;
   binInputs.mx.value = String(bin.unitsX);
   binInputs.my.value = String(bin.unitsY);
@@ -296,6 +307,7 @@ $("bin-delete").addEventListener("click", deleteSelected);
 const grid = new GridEditor($("grid") as unknown as SVGSVGElement, {
   layout: () => layout,
   selectedId: () => selectedId,
+  linkedItem: () => linkedItem,
   select,
   create(rect) {
     const bin = newBin(rect.col, rect.row, rect.unitsX, rect.unitsY);
@@ -417,7 +429,7 @@ function render() {
   exportBtn.disabled = !kernelReady || exporting || toPrint.bins.length === 0;
 
   grid.render();
-  itemsPage.refresh();
+  itemsPanel.refresh();
   autoPackCard.refresh();
   if (page === "print") printPage.render();
   if (view === "case") {
@@ -485,7 +497,7 @@ loadFile.addEventListener("change", async () => {
     selectedId = null;
     syncSettingInputs();
     syncBinInputs();
-    itemsPage.rebuild();
+    itemsPanel.rebuild();
     update(true);
     layoutStatus.textContent = `Loaded ${file.name} (${layout.bins.length} bins).`;
     layoutStatus.className = "hint head-status";
@@ -705,13 +717,18 @@ function renderSectionReadout(bin: Bin | undefined) {
 
 // ---- items page, auto-pack, pages --------------------------------------------------
 
-const itemsPage = new ItemsPage($("items-page"), {
+/** The item whose bins are lit up on the grid (hovering its row). */
+let linkedItem: string | null = null;
+
+const itemsPanel = new ItemsPanel($("items-panel"), {
   layout: () => layout,
   changed: (commit) => update(commit),
-  autoPack() {
-    location.hash = "#pack";
-    showPage();
-    autoPackCard.run();
+  selectedBinId: () => selectedId,
+  selectBin: (id) => select(id),
+  highlight(itemId) {
+    if (itemId === linkedItem) return;
+    linkedItem = itemId;
+    grid.render();
   },
 });
 
@@ -734,15 +751,14 @@ const printPage = new PrintPage($("print-page"), {
   selectionChanged: () => render(),
 });
 
-const PAGES = ["items", "pack", "print"] as const;
+const PAGES = ["pack", "print"] as const;
 type Page = (typeof PAGES)[number];
 let page: Page = "pack";
 
-/** #items, #pack or #print; with no hash, start on Items until there are bins to show. */
+/** #pack or #print; anything else (including the old #items) is Pack. */
 function showPage() {
   const hash = location.hash.slice(1) as Page;
-  page = PAGES.includes(hash) ? hash : layout.bins.length || !layout.items.length ? "pack" : "items";
-  $("items-page").hidden = page !== "items";
+  page = PAGES.includes(hash) ? hash : "pack";
   $("app").hidden = page !== "pack";
   $("print-page").hidden = page !== "print";
   for (const p of PAGES) {
@@ -801,7 +817,7 @@ function scheduleCase() {
 
 syncSettingInputs();
 syncBinInputs();
-itemsPage.rebuild();
+itemsPanel.rebuild();
 showPage();
 render();
 cad.ready().then(

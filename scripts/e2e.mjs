@@ -249,18 +249,16 @@ writeFileSync(join(out, "e2e.png"), Buffer.from(shot.result.data, "base64"));
 await pickPreset("Apache 3800");
 await js(`(() => { const i = document.getElementById("sideBorderUnits"); i.value = "4"; i.dispatchEvent(new Event("input")); i.dispatchEvent(new Event("change")); })()`);
 assert.equal(await area(), "21×14");
-await js(`location.hash = "#items"`);
-await poll(() => js(`!document.getElementById("items-page").hidden`));
 async function addItem(shape, name, dims, qty = 1, orient = null) {
   await js(`document.getElementById("add-${shape}").click()`);
   await js(`(() => {
-    const row = document.querySelector("#items-page tbody tr:last-child");
+    const row = document.querySelector("#item-list .item-row.open");
     const set = (el, v) => { el.value = String(v); el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
-    set(row.querySelector("input[type=text]"), ${JSON.stringify(name)});
+    set(row.querySelector(".item-editor input[type=text]"), ${JSON.stringify(name)});
     const dims = row.querySelectorAll(".dims input");
     ${JSON.stringify(dims)}.forEach((v, i) => set(dims[i], v));
-    set(row.querySelector("td:nth-child(4) input"), ${qty});
-    ${orient ? `set(row.querySelector("td:nth-child(5) select"), ${JSON.stringify(orient)});` : ""}
+    set(row.querySelector("input.qty"), ${qty});
+    ${orient ? `set(row.querySelectorAll(".item-editor select")[1], ${JSON.stringify(orient)});` : ""}
   })()`);
 }
 await addItem("box", "Multimeter", [182, 88, 52]);
@@ -269,17 +267,18 @@ await addItem("cylinder", "Test leads", [95, 30]);
 await addItem("box", "Bit set", [80, 45, 30]);
 await addItem("box", "Tape measure", [70, 70, 40]);
 await addItem("box", "Zip ties tub", [65, 50, 100], 1, "as-entered");
-const chips = await js(`[...document.querySelectorAll("#items-page .bin-chip")].map((e) => e.textContent)`);
-assert.deepEqual([chips[0], chips[2], chips[3], chips[4], chips[5]], ["13 × 4", "3 × 7", "4 × 3", "6 × 4", "5 × 4"], chips.join(", "));
+const chips = await js(`[...document.querySelectorAll("#item-list .bin-chip")].map((e) => e.textContent)`);
+assert.deepEqual([chips[0], chips[2], chips[3], chips[4], chips[5]], ["13×4", "3×7", "4×3", "6×4", "5×4"], chips.join(", "));
 assert.ok(!chips.includes("—"), chips.join(", "));
-// the explanation follows the selected row
-await js(`document.querySelector("#items-page tbody tr:nth-child(5) input").focus()`);
-assert.match(await text("item-why"), /Why 6 × 4\?[\s\S]*Tape measure[\s\S]*on its side|on end/);
-assert.match(await text("items-totals"), /6 items need \d+ of 294 grid units/);
-console.log(`ok   items page: 6 items sized → ${chips.join(", ")}`);
+// a row opens in place with its sizing explained
+await js(`document.querySelector("#item-list .item-row:nth-child(5) .item-head").click()`);
+assert.match(await js(`document.querySelector("#item-list .item-row.open").textContent`), /Tape measure[\s\S]*→ 6 grid units/);
+assert.match(await text("items-budget"), /Items need \d+ of 294 grid units/);
+assert.match(await text("items-height"), /up to 109 mm tall/);
+console.log(`ok   items panel: 6 items sized → ${chips.join(", ")}`);
 
-await js(`document.getElementById("items-autopack").click()`);
-await poll(() => js(`!document.getElementById("app").hidden && document.querySelectorAll("#autopack-options .option").length >= 2`));
+await js(`document.getElementById("autopack-run").click()`);
+await poll(() => js(`document.querySelectorAll("#autopack-options .option").length >= 2`));
 const optionTitles = await js(`[...document.querySelectorAll("#autopack-options .option strong")].map((e) => e.textContent)`);
 assert.ok(optionTitles.some((t) => t.includes("columns")) && optionTitles.some((t) => t.includes("rows")), optionTitles.join(", "));
 await js(`document.querySelector("#autopack-options .option button").click()`);
@@ -289,6 +288,25 @@ assert.equal(await text("checks"), "");
 const linked = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => b.itemId).length`);
 assert.equal(linked, 6);
 console.log(`ok   auto-pack: ${optionTitles.length} layouts (${optionTitles.join(" / ")}), applied: ${(await bins()).length} bins, all checks pass`);
+
+// live link: every item on the grid; hovering a row lights its bin; the bin names its item
+assert.equal(await text("items-count"), "6 of 6 on the grid");
+await js(`document.querySelector("#item-list .item-row:first-child").dispatchEvent(new MouseEvent("mouseenter"))`);
+const lit = await js(`[...document.querySelectorAll("#grid .bin.linked")].map((g) => g.dataset.bin)`);
+const multimeterBins = await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).bins.filter((b) => b.title === "Multimeter").map((b) => b.id)`);
+assert.deepEqual(lit, multimeterBins);
+await js(`document.querySelector("#item-list .item-row:first-child .item-status button").click()`);
+assert.match(await text("bin-item"), /^Holds Multimeter \(182 × 88 × 52 mm\)/);
+// + Add bin: remove the multimeter's bin, then put it back from the panel
+await key("Delete");
+assert.equal(await text("items-count"), "5 of 6 on the grid");
+await js(`document.querySelector("#item-list .item-row:first-child .add-bin").click()`);
+assert.equal(await text("items-count"), "6 of 6 on the grid");
+assert.match(await text("bin-item"), /^Holds Multimeter/);
+await key("z", "KeyZ", 2);
+await key("z", "KeyZ", 2);
+assert.equal(await text("items-count"), "6 of 6 on the grid");
+console.log("ok   items ↔ bins: hover highlight, Holds link, + Add bin");
 
 // whole-case preview: a WebGL canvas
 assert.equal(await js(`document.getElementById("view-case").getAttribute("aria-pressed")`), "true");
@@ -301,8 +319,7 @@ writeFileSync(join(out, "e2e-case.png"), Buffer.from(caseShot.result.data, "base
 await send("Page.reload");
 await poll(() => text("status").then((t) => t.includes("ready")));
 assert.equal(await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).items.length`), 6);
-await js(`location.hash = "#items"`);
-await poll(() => js(`document.querySelectorAll("#items-page tbody tr").length === 6`));
+await poll(() => js(`document.querySelectorAll("#item-list .item-row").length === 6`));
 const itemsShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
 writeFileSync(join(out, "e2e-items.png"), Buffer.from(itemsShot.result.data, "base64"));
 console.log("ok   items survive a reload");

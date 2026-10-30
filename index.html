@@ -12,9 +12,8 @@
         <span id="case-summary"></span><span class="case-edit">Edit ▾</span>
       </button>
       <nav class="steps" aria-label="Steps">
-        <a href="#items" id="step-items">1 Items</a>
-        <a href="#pack" id="step-pack">2 Pack</a>
-        <a href="#print" id="step-print">3 Print</a>
+        <a href="#pack" id="step-pack">1 Pack</a>
+        <a href="#print" id="step-print">2 Print</a>
       </nav>
     </header>
     <section class="card case-panel" id="case-panel" hidden>
@@ -75,35 +74,6 @@
     </section>
 
 
-    <div id="items-page" class="items-page" hidden>
-      <section class="card items-card">
-        <div class="items-head">
-          <h2>What goes in the case</h2>
-          <label class="inline">Play around items [mm]<input id="itemPlay" type="number" min="0" max="10" step="0.5" /></label>
-        </div>
-        <div class="table-wrap">
-          <table class="items-table">
-            <thead>
-              <tr><th>Item</th><th>Shape</th><th>Size [mm]</th><th>Qty</th><th>Orientation</th><th>Bin</th><th><span class="sr-only">Remove</span></th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="buttons">
-          <button id="add-box" type="button">+ Box</button>
-          <button id="add-cylinder" type="button">+ Cylinder</button>
-        </div>
-      </section>
-      <aside class="items-aside">
-        <section class="card" id="item-why"></section>
-        <section class="card">
-          <h2>Totals</h2>
-          <div id="items-totals"></div>
-          <button id="items-autopack" type="button" class="primary">Auto-pack →</button>
-        </section>
-      </aside>
-    </div>
-
     <div id="print-page" class="print-page" hidden>
       <section class="card plates-card">
         <div class="items-head">
@@ -140,16 +110,35 @@
 
     <div id="app" class="pack-page">
       <aside id="sidebar">
-        <section class="card" id="autopack-card">
-          <h2>Auto-pack</h2>
-          <p class="hint" id="autopack-summary"></p>
-          <button id="autopack-run" type="button" class="primary">Find layouts</button>
-          <div id="autopack-options" class="options"></div>
+        <section class="card" id="items-panel">
+          <div class="card-head">
+            <h2>Items</h2>
+            <span class="hint head-status" id="items-count"></span>
+          </div>
+          <p class="hint" id="items-empty">List what goes in the case; each item gets the smallest bin it fits in.</p>
+          <div class="budget" id="items-budget">
+            <span class="budget-text"></span>
+            <span class="budget-bar"><span></span></span>
+          </div>
+          <p class="hint" id="items-height"></p>
+          <div class="item-list" id="item-list"></div>
+          <div class="buttons items-add">
+            <button id="add-box" type="button">+ Box</button>
+            <button id="add-cylinder" type="button">+ Cylinder</button>
+            <label class="inline" title="Free space added around each item when sizing its bin">Play [mm]<input id="itemPlay" type="number" min="0" max="10" step="0.5" /></label>
+          </div>
+          <div class="autopack" id="autopack-card">
+            <h3>Auto-pack</h3>
+            <p class="hint" id="autopack-summary"></p>
+            <button id="autopack-run" type="button" class="primary">Find layouts</button>
+            <div id="autopack-options" class="options"></div>
+          </div>
         </section>
 
         <section class="card" id="bin-card" hidden>
           <div id="bin-form">
             <h2 id="bin-heading">Bin</h2>
+            <p class="bin-item" id="bin-item" hidden></p>
             <label>Title (for labelling and file names)<input id="bin-title" type="text" maxlength="40" placeholder="e.g. Small parts" /></label>
             <p class="hint" id="bin-dims"></p>
             <div class="row2">

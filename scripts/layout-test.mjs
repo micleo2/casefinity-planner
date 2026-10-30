@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const { newBin, DEFAULT_SETTINGS } = await import("../src/bins.ts");
-const { canPlace, emptyLayout, parseLayout, runChecks, serializeLayout } = await import("../src/layout.ts");
+const { canPlace, emptyLayout, firstFreeSpot, parseLayout, runChecks, serializeLayout } = await import("../src/layout.ts");
 const { groupParts } = await import("../src/export.ts");
 
 function layoutWith(areaX, areaY, rects) {
@@ -54,6 +54,15 @@ test("print bed check", () => {
   // 18×15 = 270 mm doesn't fit a 256 bed; 11×15 + 1.3 = 166 mm does
   assert.ok(checks.some((c) => c.level === "fail" && c.text.includes("18×2")));
   assert.ok(!checks.some((c) => c.text.includes("11×2")));
+});
+
+test("first free spot: back row first, left to right, turning the bin if that's what fits", () => {
+  const l = layoutWith(6, 4, [[0, 0, 4, 2]]);
+  assert.deepEqual(firstFreeSpot(l, 2, 2), { col: 4, row: 0, unitsX: 2, unitsY: 2 });
+  // 1×4 doesn't fit upright next to the 4×2 (only 4 rows, 2 taken)… but 4×1 lying does, below it
+  assert.deepEqual(firstFreeSpot(l, 1, 4), { col: 4, row: 0, unitsX: 1, unitsY: 4 });
+  assert.deepEqual(firstFreeSpot(l, 6, 2), { col: 0, row: 2, unitsX: 6, unitsY: 2 });
+  assert.equal(firstFreeSpot(l, 5, 3), null);
 });
 
 test("bins left outside after shrinking the area fail", () => {

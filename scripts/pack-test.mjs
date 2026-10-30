@@ -197,5 +197,4 @@ test("a packed layout passes the checks panel", () => {
   assert.deepEqual(bad, []);
   assert.ok(checks.some((c) => c.text.startsWith("Transport-safe")));
   assert.ok(checks.some((c) => c.text === "All grid units filled."));
-  assert.ok(!checks.some((c) => c.text.startsWith("Not in the layout")));
 });

@@ -17,15 +17,19 @@ npm run dev        # http://localhost:5173
 npm run build      # static site in dist/ — host anywhere
 ```
 
-- **1 Items** — list what goes in the case as boxes (L × W × H) or cylinders (⌀ × H), with a quantity. Each
+- **1 Pack → Items** — the panel beside the grid lists what goes in the case as boxes (L × W × H) or cylinders
+  (⌀ × H), with a quantity; click a row to edit it in place. Each
   gets the smallest bin it fits, standing or lying (or *as entered* / *standing* / *lying* if you choose), with
   the reasoning shown: e.g. “70 + 1 → 6 grid units give 85.9 ✓ (5 give 70.9 ✗)”. Inside sizes come from
   casefinity's geometry (`15n − 0.2 clearance − 2 × wall − socket bosses`, height − floor) and are checked
   against the real CAD model in `npm run smoke`. *Play around items* (default 1 mm) is added to each footprint.
-- **2 Pack → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
+  Each row links to the grid: *on grid* selects its bin, hovering lights it up, *+ Add bin* drops its snug bin
+  into the first free spot, and the Bin card names the item a bin holds. The panel also shows the space budget
+  and the tallest item a bin can take.
+- **1 Pack → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
   keep their snug size and spare grid units become spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D. *Selected bin* shows the real CAD model of one bin.
-- **3 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), each part
+- **2 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), each part
   numbered. *Export ZIP* gives one 3MF per plate with every body in place, a 3MF of lids for each bin that has
   them, and `layout.json`.
 - **Case bar** — the active case is summarised in the header on every page; *Edit* opens the shared case
@@ -56,7 +60,7 @@ src/
   pack.ts      auto-pack into full columns / rows — pure
   plates.ts    print plan: part numbers, bins → bed plates — pure
   plateExport.ts   one plate's bodies placed on the bed, as 3MF (worker and tests share it)
-  itemsPage.ts, autopack.ts, caseView.ts, printPage.ts   the Items page, Auto-pack card, whole-case 3D view, Print page
+  itemsPanel.ts, autopack.ts, caseView.ts, printPage.ts   the Items panel, Auto-pack, whole-case 3D view, Print page
   grid.ts      SVG grid editor
   export.ts    batch build + ZIP, with a per-part cache
   step.ts      STEP writer without replicad 0.23.1's double free (see below)

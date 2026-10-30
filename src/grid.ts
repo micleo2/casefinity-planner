@@ -27,6 +27,8 @@ type Drag =
 export interface GridHooks {
   layout(): Layout;
   selectedId(): string | null;
+  /** Bins holding this item are lit up (its row is hovered in the Items panel). */
+  linkedItem(): string | null;
   select(id: string | null): void;
   create(rect: Rect): void;
   /** A bin's position/size was changed live; `done` marks the end of the gesture. */
@@ -192,7 +194,8 @@ export class GridEditor {
       const h = b.unitsY * CELL;
       const isSel = b.id === selected;
       const bad = !inBounds(b, s) || !fitsBed(b, s);
-      const g = el("g", { class: `bin${isSpacer(b) ? " spacer" : ""}${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
+      const linked = !!b.itemId && b.itemId === this.hooks.linkedItem();
+      const g = el("g", { class: `bin${isSpacer(b) ? " spacer" : ""}${linked ? " linked" : ""}${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
       g.append(el("rect", { class: "body", x: x + 1.5, y: y + 1.5, width: w - 3, height: h - 3, rx: 3 }));
       const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);
