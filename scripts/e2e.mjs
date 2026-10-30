@@ -68,7 +68,7 @@ await send("Page.navigate", { url: SITE });
 await poll(() => js(`document.readyState === "complete"`));
 await js(`localStorage.clear()`);
 await send("Page.reload");
-await poll(() => text("status").then((t) => t.includes("ready")));
+await poll(() => js(`document.body.dataset.kernel === "ready"`));
 
 // --- fresh start: --Custom-- with casefinity's default perimeter ------------------
 const area = () => js(`[document.getElementById("areaX").value, document.getElementById("areaY").value].join("×")`);
@@ -116,8 +116,7 @@ assert.equal((await bins()).length, 17, "all 17 bins drawn");
 // a valid layout reports nothing: no passes are listed, and the checks hide
 assert.equal(await text("checks"), "");
 assert.equal(await js(`document.getElementById("checks").hidden`), true);
-assert.match(await text("export"), /Export 17 bin\(s\) as ZIP \(11 unique\)/);
-console.log("ok   reference layout: 17 bins, 11 unique parts, all checks pass");
+console.log("ok   reference layout: 17 bins, all checks pass");
 
 // --- drawing over an existing bin is rejected ---------------------------------
 await drawBin(1, 1, 2, 2);
@@ -191,29 +190,9 @@ await mouse("mousePressed", await cellXY(0, 12)); await mouse("mouseReleased", a
 assert.deepEqual(await js(`["bin-card", "view-seg"].map((id) => document.getElementById(id).hidden)`), [false, false]);
 console.log("ok   bin card and Selected-bin preview only while a bin is selected");
 
-// --- export ZIP -------------------------------------------------------------------
-await js(`document.getElementById("export").click()`);
-await poll(() => text("status").then((t) => /Exported|failed/.test(t)), 240000);
-const status = await text("status");
-assert.match(status, /Exported/, status);
-const zipName = await poll(() => readdirSync(out).find((f) => f === "casefinity-bins.zip"));
-const zip = unzipSync(readFileSync(join(out, zipName)));
-const names = Object.keys(zip).sort();
-const stls = names.filter((n) => n.endsWith(".stl"));
-const steps = names.filter((n) => n.endsWith(".step"));
-assert.equal(stls.length, 13, names.join("\n")); // 11 reference parts + lid 2×2 and titled 3×5 split off
-assert.equal(steps.length, 13);
-assert.ok(names.includes("stl/03x05_small-parts_no-lid.stl"));
-assert.ok(names.includes("stl/02x02_no-lid_x4.stl"));
-assert.ok(names.includes("stl/02x02_with-lid.stl"));
-for (const n of stls) assert.ok(zip[n].length > 1000, `${n} is not empty`);
-const saved = JSON.parse(strFromU8(zip["layout.json"]));
-assert.equal(saved.bins.length, 17);
-console.log(`ok   ${status} ZIP: ${stls.length} STL + ${steps.length} STEP + layout.json`);
-
 // --- layout survives a reload; save/load ------------------------------------------
 await send("Page.reload");
-await poll(() => text("status").then((t) => t.includes("ready")));
+await poll(() => js(`document.body.dataset.kernel === "ready"`));
 assert.equal((await bins()).length, 17);
 await js(`document.getElementById("save-layout").click()`);
 await poll(() => readdirSync(out).includes("casefinity-layout.json"));
@@ -328,7 +307,7 @@ const caseShot = await send("Page.captureScreenshot", { format: "png", captureBe
 writeFileSync(join(out, "e2e-case.png"), Buffer.from(caseShot.result.data, "base64"));
 
 await send("Page.reload");
-await poll(() => text("status").then((t) => t.includes("ready")));
+await poll(() => js(`document.body.dataset.kernel === "ready"`));
 assert.equal(await js(`JSON.parse(localStorage.getItem("casefinity-planner/layout")).items.length`), 6);
 await poll(() => js(`document.querySelectorAll("#item-list .item-row").length === 6`));
 const itemsShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
@@ -363,18 +342,17 @@ assert.equal(objectsTotal, binCount, "one 3MF object per bin across the plates")
 assert.ok(plateZip["layout.json"] && !plateZip["case-map.svg"]);
 console.log(`ok   print plan: ${plateCount} plate(s), ${binCount} parts; ${plateStatus} ZIP: ${plateFiles.length} plate 3MF`);
 
-// selecting bins: plates and the parts export follow the ticks
+// selecting bins: the plates follow the ticks
 assert.equal(await js(`document.querySelectorAll("#pick-list input:checked").length`), binCount);
 await js(`document.getElementById("pick-none").click()`);
 assert.equal(await js(`document.querySelectorAll("#plates .plate-card").length`), 0);
-assert.ok(await js(`document.getElementById("export-plates").disabled && document.getElementById("export").disabled`));
+assert.ok(await js(`document.getElementById("export-plates").disabled`));
 await js(`[...document.querySelectorAll("#pick-list input")].slice(0, 3).forEach((b) => b.click())`);
 const picked = await js(`[...document.querySelectorAll("#plates .part-num")].map((t) => +t.textContent).sort((a, b) => a - b)`);
 assert.deepEqual(picked, [1, 2, 3], "only the ticked bins, with their own numbers");
-assert.match(await text("export"), /^Export 3 bin\(s\) as ZIP/);
 await js(`document.getElementById("pick-all").click()`);
 assert.equal(await js(`document.querySelectorAll("#plates .part-num").length`), binCount);
-console.log("ok   Bins to print: plates and parts export follow the selection");
+console.log("ok   Bins to print: plates follow the selection");
 
 await js(`window.scrollTo(0, 0)`);
 const printShot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });

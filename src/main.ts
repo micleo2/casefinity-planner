@@ -1,6 +1,6 @@
 import "./style.css";
 import { wrap } from "comlink";
-import type { CadWorkerApi, ExportFormat } from "./worker.ts";
+import type { CadWorkerApi } from "./worker.ts";
 import {
   BIN_TYPES,
   CASE_PRESETS,
@@ -16,7 +16,6 @@ import {
 import type { Bin, BinType, Layout, Settings } from "./bins.ts";
 import { canPlace, emptyLayout, fitsBed, parseLayout, runChecks, serializeLayout } from "./layout.ts";
 import { GridEditor } from "./grid.ts";
-import { exportZip, groupParts } from "./export.ts";
 import { ItemsPanel } from "./itemsPanel.ts";
 import { AutoPackCard } from "./autopack.ts";
 import { PrintPage } from "./printPage.ts";
@@ -420,15 +419,6 @@ function render() {
   );
   $("checks").hidden = problems.length === 0;
 
-  // The parts export follows the Print page's selection
-  const toPrint = printLayout();
-  const parts = groupParts(toPrint);
-  const exportBtn = $<HTMLButtonElement>("export");
-  exportBtn.textContent = toPrint.bins.length
-    ? `Export ${toPrint.bins.length} bin(s) as ZIP` + (parts.length < toPrint.bins.length ? ` (${parts.length} unique)` : "")
-    : "Export as ZIP";
-  exportBtn.disabled = !kernelReady || exporting || toPrint.bins.length === 0;
-
   grid.render();
   itemsPanel.refresh();
   autoPackCard.refresh();
@@ -440,17 +430,10 @@ function render() {
   }
 }
 
-// ---- export, save, load ----------------------------------------------------------
+// ---- save, load --------------------------------------------------------------------
 
 let kernelReady = false;
-let exporting = false;
-const status = $("status");
 const layoutStatus = $("layout-status");
-
-/** The layout narrowed to the bins ticked on the Print page. */
-function printLayout(): Layout {
-  return { ...layout, bins: printPage.selectedBins() };
-}
 
 function download(data: BlobPart, name: string, type: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -460,28 +443,6 @@ function download(data: BlobPart, name: string, type: string) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
-
-$("export").addEventListener("click", async () => {
-  const formats: ExportFormat[] = ["stl"];
-  if ($<HTMLInputElement>("export-step").checked) formats.push("step");
-  if ($<HTMLInputElement>("export-3mf").checked) formats.push("3mf");
-  exporting = true;
-  render();
-  const t0 = performance.now();
-  try {
-    const zip = await exportZip(cad, layout, formats, (done, total) => {
-      status.textContent = `Building part ${Math.min(done + 1, total)} of ${total}…`;
-    }, printPage.selectedBins());
-    download(zip as Uint8Array<ArrayBuffer>, "casefinity-bins.zip", "application/zip");
-    status.textContent = `Exported in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
-  } catch (err) {
-    console.error(err);
-    status.textContent = `Export failed: ${err instanceof Error ? err.message : String(err)}`;
-  } finally {
-    exporting = false;
-    render();
-  }
-});
 
 $("save-layout").addEventListener("click", () => {
   download(serializeLayout(layout), "casefinity-layout.json", "application/json");
@@ -825,9 +786,13 @@ render();
 cad.ready().then(
   () => {
     kernelReady = true;
-    status.textContent = "CAD kernel ready.";
+    document.body.dataset.kernel = "ready";
+    $("plates-status").textContent = "";
     render();
     if (page === "print") printPage.render();
   },
-  (err) => { status.textContent = `CAD kernel failed to load: ${err}`; },
+  (err) => {
+    document.body.dataset.kernel = "failed";
+    $("plates-status").textContent = `CAD kernel failed to load: ${err}`;
+  },
 );

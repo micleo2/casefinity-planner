@@ -1,7 +1,7 @@
 # Casefinity Planner
 
 A browser-only layout planner for the [Gridfinity for Hardcases](https://www.patreon.com/UnemployedArchitect/posts/gridfinity-for-162320687)
-system. Draw bins onto your case's grid and export every part as print-ready STL / STEP / 3MF in one ZIP.
+system. Draw bins onto your case's grid and export them as print-ready 3MF plates for your bed.
 Nothing is uploaded: the OpenCascade CAD kernel runs in a web worker (WASM), just like [casefinity.net](https://casefinity.net/).
 
 Bin geometry is **casefinity's own model code**, vendored unchanged from
@@ -49,8 +49,6 @@ npm run build      # static site in dist/ — host anywhere
   exact: a layout fails if any bin, or group of bins pushing each other, can slide into empty space (named, with
   the direction); a gap boxed in so nothing can move is fine and only noted. Also print-bed fit, items that
   outgrew their bin, items switched off that still have a bin, and rectangular double-sided hoppers.
-- **Export** — one ZIP with `stl/`, optional `step/` and `3mf/`, plus `layout.json`. Identical bins are built
-  once and named with a quantity, e.g. `02x02_no-lid_x4.stl`.
 - The layout autosaves in the browser; *Save / Load layout* moves it between machines.
 
 ## Layout

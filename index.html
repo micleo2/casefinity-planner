@@ -27,14 +27,6 @@
           </div>
           <div id="pick-list" class="pick-list"></div>
         </section>
-        <section class="card" id="parts-card">
-          <h2>Individual parts</h2>
-          <p class="hint">One file per unique bin, to slice or edit yourself.</p>
-          <label class="check"><input id="export-step" type="checkbox" checked /> STEP in addition to STL</label>
-          <label class="check"><input id="export-3mf" type="checkbox" /> 3MF in addition to STL</label>
-          <button id="export" type="button" disabled>Export as ZIP</button>
-          <p class="hint parts-status" id="status">Loading CAD kernel…</p>
-        </section>
       </aside>
       <section class="card plates-card">
         <div class="items-head">
@@ -45,7 +37,7 @@
         <div class="buttons">
           <button id="export-plates" type="button" class="primary" disabled>Export ZIP · one 3MF per plate</button>
         </div>
-        <p class="hint" id="plates-status"></p>
+        <p class="hint" id="plates-status">Loading CAD kernel…</p>
       </section>
     </div>
 

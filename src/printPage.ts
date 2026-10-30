@@ -18,7 +18,7 @@ export interface PrintHooks {
   cad: Remote<CadWorkerApi>;
   kernelReady(): boolean;
   download(data: BlobPart, name: string, type: string): void;
-  /** The print selection changed (the parts export follows it too). */
+  /** The print selection changed. */
   selectionChanged(): void;
 }
 
