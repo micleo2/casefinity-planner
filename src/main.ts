@@ -760,6 +760,7 @@ function showPage() {
   const hash = location.hash.slice(1) as Page;
   page = PAGES.includes(hash) ? hash : "prepare";
   $("app").hidden = page !== "prepare";
+  $("prepare-case").hidden = page !== "prepare";
   $("print-page").hidden = page !== "print";
   for (const p of PAGES) {
     const link = $(`step-${p}`);

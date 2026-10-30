@@ -144,11 +144,13 @@ footer a { color: var(--muted); }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
 header h1 { margin: 0; }
 header .steps { margin-left: auto; }
-/* The active case, on every page; opens the shared case settings */
+/* The active case, at the top of the Prepare page; opens the case settings */
+.prepare-case { margin-bottom: 16px; }
+.prepare-case[hidden] { display: none; }
 .case-chip { display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 999px; background: var(--card); font-size: 14px; color: var(--text); }
 .case-chip .case-edit { color: var(--accent); font-weight: 600; }
 .case-chip[aria-expanded="true"] { border-color: var(--accent); }
-.case-panel { margin-bottom: 20px; }
+.case-panel { margin-top: 12px; }
 .case-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 28px; align-items: start; }
 .case-cols h2 { margin-top: 4px; }
 .case-cols details { margin-top: 4px; }

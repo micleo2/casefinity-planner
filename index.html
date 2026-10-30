@@ -8,14 +8,51 @@
   <body>
     <header>
       <h1>Casefinity Planner</h1>
-      <button type="button" id="case-toggle" class="case-chip" aria-expanded="false" aria-controls="case-panel">
-        <span id="case-summary"></span><span class="case-edit">Edit ▾</span>
-      </button>
       <nav class="steps" aria-label="Steps">
         <a href="#prepare" id="step-prepare">1 Prepare</a>
         <a href="#print" id="step-print">2 Print</a>
       </nav>
     </header>
+
+
+    <div id="print-page" class="print-page" hidden>
+      <section class="card plates-card">
+        <div class="items-head">
+          <h2 id="plates-title">Plates</h2>
+          <span class="hint" id="plates-note"></span>
+        </div>
+        <div id="plates" class="plates"></div>
+        <div class="buttons">
+          <button id="export-plates" type="button" class="primary" disabled>Export ZIP · one 3MF per plate</button>
+        </div>
+        <p class="hint" id="plates-status"></p>
+      </section>
+      <aside class="print-aside">
+        <section class="card" id="pick-card">
+          <div class="card-head">
+            <h2>Bins to print</h2>
+            <div class="head-tools">
+              <button id="pick-all" type="button">All</button>
+              <button id="pick-none" type="button">None</button>
+            </div>
+          </div>
+          <div id="pick-list" class="pick-list"></div>
+        </section>
+        <section class="card" id="parts-card">
+          <h2>Individual parts</h2>
+          <p class="hint">One file per unique bin, to slice or edit yourself.</p>
+          <label class="check"><input id="export-step" type="checkbox" checked /> STEP in addition to STL</label>
+          <label class="check"><input id="export-3mf" type="checkbox" /> 3MF in addition to STL</label>
+          <button id="export" type="button" disabled>Export as ZIP</button>
+          <p class="hint parts-status" id="status">Loading CAD kernel…</p>
+        </section>
+      </aside>
+    </div>
+
+    <div id="prepare-case" class="prepare-case">
+      <button type="button" id="case-toggle" class="case-chip" aria-expanded="false" aria-controls="case-panel">
+        <span id="case-summary"></span><span class="case-edit">Edit ▾</span>
+      </button>
     <section class="card case-panel" id="case-panel" hidden>
       <div class="case-cols">
         <div>
@@ -72,40 +109,6 @@
         </div>
       </div>
     </section>
-
-
-    <div id="print-page" class="print-page" hidden>
-      <section class="card plates-card">
-        <div class="items-head">
-          <h2 id="plates-title">Plates</h2>
-          <span class="hint" id="plates-note"></span>
-        </div>
-        <div id="plates" class="plates"></div>
-        <div class="buttons">
-          <button id="export-plates" type="button" class="primary" disabled>Export ZIP · one 3MF per plate</button>
-        </div>
-        <p class="hint" id="plates-status"></p>
-      </section>
-      <aside class="print-aside">
-        <section class="card" id="pick-card">
-          <div class="card-head">
-            <h2>Bins to print</h2>
-            <div class="head-tools">
-              <button id="pick-all" type="button">All</button>
-              <button id="pick-none" type="button">None</button>
-            </div>
-          </div>
-          <div id="pick-list" class="pick-list"></div>
-        </section>
-        <section class="card" id="parts-card">
-          <h2>Individual parts</h2>
-          <p class="hint">One file per unique bin, to slice or edit yourself.</p>
-          <label class="check"><input id="export-step" type="checkbox" checked /> STEP in addition to STL</label>
-          <label class="check"><input id="export-3mf" type="checkbox" /> 3MF in addition to STL</label>
-          <button id="export" type="button" disabled>Export as ZIP</button>
-          <p class="hint parts-status" id="status">Loading CAD kernel…</p>
-        </section>
-      </aside>
     </div>
 
     <div id="app" class="pack-page">
