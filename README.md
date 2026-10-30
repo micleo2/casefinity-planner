@@ -17,7 +17,7 @@ npm run dev        # http://localhost:5173
 npm run build      # static site in dist/ — host anywhere
 ```
 
-- **1 Pack → Items** — the panel beside the grid lists what goes in the case as boxes (L × W × H) or cylinders
+- **1 Prepare → Items** — the panel beside the grid lists what goes in the case as boxes (L × W × H) or cylinders
   (⌀ × H), with a quantity; click a row to edit it in place. Each
   gets the smallest bin it fits, standing or lying (or *as entered* / *standing* / *lying* if you choose), with
   the reasoning shown: e.g. “70 + 1 → 6 grid units give 85.9 ✓ (5 give 70.9 ✗)”. Inside sizes come from
@@ -27,7 +27,7 @@ npm run build      # static site in dist/ — host anywhere
   into the first free spot, and the Bin card names the item a bin holds. The panel also shows the space budget
   and the tallest item a bin can take. Untick an item to switch it off: it stays in the list but auto-pack and
   the budget leave it out (and its bin, if it has one, is greyed and flagged).
-- **1 Pack → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
+- **1 Prepare → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
   keep their snug size and spare grid units become spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D. *Selected bin* shows the real CAD model of one bin.
 - **2 Print** — the bins arranged onto your print bed (turned where that fits better, 5 mm gaps), each part

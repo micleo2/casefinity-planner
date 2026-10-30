@@ -324,7 +324,7 @@ const grid = new GridEditor($("grid") as unknown as SVGSVGElement, {
 
 document.addEventListener("keydown", (e) => {
   const t = e.target as HTMLElement;
-  if (t.closest("input, select, textarea") || page !== "pack") return;
+  if (t.closest("input, select, textarea") || page !== "prepare") return;
   if (e.key === "?") {
     e.preventDefault();
     $("keys").togglePopover();
@@ -751,15 +751,15 @@ const printPage = new PrintPage($("print-page"), {
   selectionChanged: () => render(),
 });
 
-const PAGES = ["pack", "print"] as const;
+const PAGES = ["prepare", "print"] as const;
 type Page = (typeof PAGES)[number];
-let page: Page = "pack";
+let page: Page = "prepare";
 
-/** #pack or #print; anything else (including the old #items) is Pack. */
+/** #prepare or #print; anything else (including the old #items / #pack) is Prepare. */
 function showPage() {
   const hash = location.hash.slice(1) as Page;
-  page = PAGES.includes(hash) ? hash : "pack";
-  $("app").hidden = page !== "pack";
+  page = PAGES.includes(hash) ? hash : "prepare";
+  $("app").hidden = page !== "prepare";
   $("print-page").hidden = page !== "print";
   for (const p of PAGES) {
     const link = $(`step-${p}`);

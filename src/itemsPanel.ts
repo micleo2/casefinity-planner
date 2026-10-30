@@ -5,7 +5,7 @@ import { insideHeight, newItem, sizeItem } from "./sizing.ts";
 import type { Item, ItemShape, Orientation, Sizing, SizingError } from "./sizing.ts";
 
 /**
- * The Items panel on the Pack page: what goes in the case, each item's
+ * The Items panel on the Prepare page: what goes in the case, each item's
  * smallest bin, and its link to the grid. A row shows the item's bin size and
  * whether it's on the grid (click to select that bin) or not (+ Add bin puts
  * its snug bin in the first free spot); hovering a row lights up its bins.

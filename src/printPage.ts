@@ -98,7 +98,7 @@ export class PrintPage {
     });
     const notes: HTMLElement[] = [];
     if (!layout.bins.length) {
-      notes.push(Object.assign(document.createElement("p"), { className: "hint", textContent: "No bins yet — add items and auto-pack, or draw bins on the Pack page." }));
+      notes.push(Object.assign(document.createElement("p"), { className: "hint", textContent: "No bins yet — add items and auto-pack, or draw bins on the Prepare page." }));
     } else if (!selected.length) {
       notes.push(Object.assign(document.createElement("p"), { className: "hint", textContent: "No bins selected — tick the ones to print under Bins to print." }));
     }

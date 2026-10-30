@@ -6,7 +6,7 @@ import type { Demand, PackOption } from "./pack.ts";
 import { sizeItem } from "./sizing.ts";
 
 /**
- * Auto-pack, inside the Items panel on the Pack page: size every item, find the best
+ * Auto-pack, inside the Items panel on the Prepare page: size every item, find the best
  * full-columns and full-rows layouts, draw each as a thumbnail and apply the
  * chosen one. Item bins keep their snug size; spare grid units become spacers
  * (pack.ts can also grow bins into them, but that's switched off for now).

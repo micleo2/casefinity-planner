@@ -163,7 +163,7 @@ header .steps { margin-left: auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .table-wrap { overflow-x: auto; }
 
-/* ---- items panel (Pack page) ------------------------------------------------ */
+/* ---- items panel (Prepare page) --------------------------------------------- */
 .items-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 8px; }
 .items-head h2 { margin: 0; }
 label.inline { flex-direction: row; align-items: center; gap: 8px; margin: 0; }
