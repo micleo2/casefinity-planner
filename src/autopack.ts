@@ -53,6 +53,7 @@ export class AutoPackCard {
     const broken: string[] = [];
     this.sizes.clear();
     for (const item of layout.items) {
+      if (item.off) continue;
       const r = sizeItem(item, s);
       if (r.ok) {
         demands.push({ id: item.id, unitsX: r.unitsX, unitsY: r.unitsY });
@@ -76,7 +77,7 @@ export class AutoPackCard {
   /** Called on every render: show the item count, and drop options that went stale. */
   refresh() {
     const layout = this.hooks.layout();
-    const n = layout.items.length;
+    const n = layout.items.filter((it) => !it.off).length;
     this.runButton.disabled = n === 0;
     this.runButton.textContent = this.options.length ? "Find layouts again" : "Find layouts";
     if (this.key && this.key !== packKey(layout)) {

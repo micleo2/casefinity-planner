@@ -27,6 +27,8 @@ export interface Item {
   diameter: number;
   qty: number;
   orient: Orientation;
+  /** Switched off: kept in the list, but left out of auto-pack and the space budget. */
+  off: boolean;
 }
 
 export function newItem(shape: ItemShape): Item {
@@ -40,6 +42,7 @@ export function newItem(shape: ItemShape): Item {
     diameter: shape === "cylinder" ? 50 : 0,
     qty: 1,
     orient: "auto",
+    off: false,
   };
 }
 

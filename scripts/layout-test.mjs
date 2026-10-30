@@ -6,6 +6,7 @@ import { test } from "node:test";
 const { newBin, DEFAULT_SETTINGS } = await import("../src/bins.ts");
 const { canPlace, emptyLayout, firstFreeSpot, parseLayout, runChecks, serializeLayout } = await import("../src/layout.ts");
 const { groupParts } = await import("../src/export.ts");
+const { newItem } = await import("../src/sizing.ts");
 
 function layoutWith(areaX, areaY, rects) {
   const l = emptyLayout();
@@ -54,6 +55,18 @@ test("print bed check", () => {
   // 18×15 = 270 mm doesn't fit a 256 bed; 11×15 + 1.3 = 166 mm does
   assert.ok(checks.some((c) => c.level === "fail" && c.text.includes("18×2")));
   assert.ok(!checks.some((c) => c.text.includes("11×2")));
+});
+
+test("switched-off items survive a round trip, and their bins are flagged", () => {
+  const l = layoutWith(6, 6, [[0, 0, 2, 2]]);
+  const it = { ...newItem("box"), id: "offitem", name: "Spare", off: true };
+  l.items = [it];
+  l.bins[0].itemId = it.id;
+  l.bins[0].title = "Spare";
+  const back = parseLayout(serializeLayout(l));
+  assert.equal(back.items[0].off, true);
+  assert.equal(parseLayout(JSON.stringify({ version: 1, bins: [], items: [{ id: "abc", shape: "box" }] })).items[0].off, false);
+  assert.ok(runChecks(back).some((c) => c.level === "warn" && c.text.includes("switched off: Spare (2×2)")));
 });
 
 test("first free spot: back row first, left to right, turning the bin if that's what fits", () => {

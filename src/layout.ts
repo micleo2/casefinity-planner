@@ -140,6 +140,11 @@ export function runChecks(layout: Layout): Check[] {
   }
 
   const items = new Map(layout.items.map((it) => [it.id, it]));
+  const offItems = new Set(layout.items.filter((it) => it.off).map((it) => it.id));
+  const offBins = layout.bins.filter((b) => b.itemId && offItems.has(b.itemId));
+  if (offBins.length) {
+    warn(`Bin${offBins.length === 1 ? "" : "s"} for items you switched off: ${offBins.map((b) => `${b.title || "bin"} (${b.unitsX}×${b.unitsY})`).join(", ")}.`);
+  }
   const cramped = layout.bins.filter((b) => {
     const item = b.itemId ? items.get(b.itemId) : undefined;
     if (!item) return false;
@@ -223,6 +228,7 @@ export function parseLayout(json: string): Layout {
       diameter: num(it.diameter, base.diameter),
       qty: Math.max(1, Math.round(num(it.qty, 1))),
       orient: orients.includes(it.orient as Orientation) ? (it.orient as Orientation) : "auto",
+      off: it.off === true,
     };
   });
   const known = new Set(items.map((it) => it.id));

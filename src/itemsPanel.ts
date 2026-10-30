@@ -9,7 +9,8 @@ import type { Item, ItemShape, Orientation, Sizing, SizingError } from "./sizing
  * smallest bin, and its link to the grid. A row shows the item's bin size and
  * whether it's on the grid (click to select that bin) or not (+ Add bin puts
  * its snug bin in the first free spot); hovering a row lights up its bins.
- * Clicking a row opens it for editing in place. Rows are rebuilt only when the
+ * Clicking a row opens it for editing in place; its checkbox switches the item
+ * off (kept, but left out of auto-pack and the budget). Rows are rebuilt only when the
  * list's shape changes (add, delete, box ↔ cylinder) so typing never loses
  * focus; the computed parts refresh on every render.
  */
@@ -142,14 +143,21 @@ export class ItemsPanel {
       return input;
     };
 
-    // Summary line: caret, name, bin size, grid status
+    // Summary line: on/off, caret, name, bin size, grid status
+    const on = el("input", { type: "checkbox", className: "item-on", checked: !item.off });
+    on.setAttribute("aria-label", `Include ${item.name || "item"}`);
+    on.title = "Include this item (untick to keep it but leave it out of auto-pack)";
+    on.addEventListener("change", () => {
+      item.off = !on.checked;
+      commit();
+    });
     const caret = el("span", { className: "caret", textContent: "▸" });
     const nameText = el("span", { className: "item-name" });
     const chip = el("span", { className: "bin-chip" });
     const status = el("span", { className: "item-status" });
-    const head = el("div", { className: "item-head" }, caret, nameText, chip, status);
+    const head = el("div", { className: "item-head" }, on, caret, nameText, chip, status);
     head.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).closest("button")) return;
+      if ((e.target as HTMLElement).closest("button, input")) return;
       this.openId = this.openId === item.id ? null : item.id;
       const bin = this.hooks.layout().bins.find((b) => b.itemId === item.id);
       if (bin && this.openId) this.hooks.selectBin(bin.id);
@@ -226,17 +234,21 @@ export class ItemsPanel {
     const sized = new Map<string, Sizing | SizingError>(this.items.map((it) => [it.id, sizeItem(it, s)]));
     const selectedBin = layout.bins.find((b) => b.id === this.hooks.selectedBinId());
     let placed = 0;
+    const active = this.items.filter((it) => !it.off);
     for (const it of this.items) {
       const parts = this.rows.get(it.id);
       if (!parts) continue;
       const r = sized.get(it.id)!;
       const bin = layout.bins.find((b) => b.itemId === it.id);
-      if (bin) placed++;
+      if (bin && !it.off) placed++;
+      parts.row.classList.toggle("off", it.off);
       parts.name.textContent = it.name || "Unnamed item";
       parts.chip.textContent = r.ok ? `${r.unitsX}×${r.unitsY}` : "—";
       parts.chip.className = r.ok ? "bin-chip" : "bin-chip bad";
       parts.chip.title = r.ok ? "Smallest bin, in grid units" : r.error;
-      if (!r.ok) {
+      if (it.off) {
+        parts.status.replaceChildren(el("span", { className: "muted", textContent: bin ? "off · has bin" : "off" }));
+      } else if (!r.ok) {
         parts.status.replaceChildren(el("span", { className: "bad", textContent: "fix size" }));
       } else if (bin) {
         const go = el("button", { type: "button", className: "linklike", textContent: "on grid" });
@@ -261,11 +273,14 @@ export class ItemsPanel {
     }
 
     // Counts, the space budget and the height limit
-    const ok = this.items.map((it) => sized.get(it.id)!).filter((x): x is Sizing => x.ok);
+    const ok = active.map((it) => sized.get(it.id)!).filter((x): x is Sizing => x.ok);
     const need = ok.reduce((a, x) => a + x.unitsX * x.unitsY, 0);
     const have = s.areaX * s.areaY;
-    const n = this.items.length;
-    this.root.querySelector("#items-count")!.textContent = n ? `${placed} of ${n} on the grid` : "";
+    const n = active.length;
+    const off = this.items.length - n;
+    this.root.querySelector("#items-count")!.textContent = this.items.length
+      ? `${placed} of ${n} on the grid` + (off ? ` · ${off} off` : "")
+      : "";
     const budget = this.root.querySelector<HTMLElement>("#items-budget")!;
     budget.hidden = n === 0;
     const pct = have ? Math.round((need / have) * 100) : 0;
@@ -275,6 +290,6 @@ export class ItemsPanel {
     budget.classList.toggle("over", need > have);
     this.root.querySelector("#items-height")!.textContent =
       `Items can be up to ${+insideHeight(s).toFixed(1)} mm tall (bin height ${s.overallHeight} − ${s.floorThick} mm floor).`;
-    this.root.querySelector<HTMLElement>("#items-empty")!.hidden = n > 0;
+    this.root.querySelector<HTMLElement>("#items-empty")!.hidden = this.items.length > 0;
   }
 }

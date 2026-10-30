@@ -195,7 +195,8 @@ export class GridEditor {
       const isSel = b.id === selected;
       const bad = !inBounds(b, s) || !fitsBed(b, s);
       const linked = !!b.itemId && b.itemId === this.hooks.linkedItem();
-      const g = el("g", { class: `bin${isSpacer(b) ? " spacer" : ""}${linked ? " linked" : ""}${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
+      const itemOff = !!b.itemId && !!layout.items.find((it) => it.id === b.itemId)?.off;
+      const g = el("g", { class: `bin${isSpacer(b) ? " spacer" : ""}${linked ? " linked" : ""}${itemOff ? " item-off" : ""}${isSel ? " selected" : ""}${bad ? " invalid" : ""}`, "data-bin": b.id });
       g.append(el("rect", { class: "body", x: x + 1.5, y: y + 1.5, width: w - 3, height: h - 3, rx: 3 }));
       const label = el("text", { class: "label", x: x + w / 2, y: y + h / 2 }, `${b.unitsX}×${b.unitsY}`);
       g.append(label);

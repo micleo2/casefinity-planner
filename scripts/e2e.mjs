@@ -308,6 +308,16 @@ await key("z", "KeyZ", 2);
 assert.equal(await text("items-count"), "6 of 6 on the grid");
 console.log("ok   items ↔ bins: hover highlight, Holds link, + Add bin");
 
+// switching an item off: kept, greyed, its bin flagged, left out of auto-pack
+await js(`document.querySelector("#item-list .item-row:nth-child(4) .item-on").click()`);
+assert.equal(await text("items-count"), "5 of 5 on the grid · 1 off");
+assert.match(await text("checks"), /switched off: Bit set/);
+assert.equal(await js(`document.querySelectorAll("#grid .bin.item-off").length`), 1);
+assert.match(await text("autopack-summary"), /all 5 items/);
+await js(`document.querySelector("#item-list .item-row:nth-child(4) .item-on").click()`);
+assert.equal(await text("items-count"), "6 of 6 on the grid");
+console.log("ok   switching an item off and on");
+
 // whole-case preview: a WebGL canvas
 assert.equal(await js(`document.getElementById("view-case").getAttribute("aria-pressed")`), "true");
 await poll(() => js(`!!document.querySelector("#case-view canvas")`), 30000);

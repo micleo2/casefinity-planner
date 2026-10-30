@@ -25,7 +25,8 @@ npm run build      # static site in dist/ — host anywhere
   against the real CAD model in `npm run smoke`. *Play around items* (default 1 mm) is added to each footprint.
   Each row links to the grid: *on grid* selects its bin, hovering lights it up, *+ Add bin* drops its snug bin
   into the first free spot, and the Bin card names the item a bin holds. The panel also shows the space budget
-  and the tallest item a bin can take.
+  and the tallest item a bin can take. Untick an item to switch it off: it stays in the list but auto-pack and
+  the budget leave it out (and its bin, if it has one, is greyed and flagged).
 - **1 Pack → Auto-pack** — finds a transport-safe layout with full columns and one with full rows; item bins
   keep their snug size and spare grid units become spacer bins. *Use this layout* replaces the grid's bins (Ctrl+Z undoes it).
 - **Preview → Whole case** — every bin as a see-through shell with its items inside in 3D. *Selected bin* shows the real CAD model of one bin.

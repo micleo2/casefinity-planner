@@ -90,6 +90,8 @@ summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-bottom: 
 #grid .area { fill: #fff; stroke: var(--grid-line); }
 #grid .bin { cursor: grab; }
 #grid .bin .body { fill: var(--bin-fill); stroke: var(--bin-stroke); stroke-width: 1.5; }
+/* Bins whose item is switched off in the Items panel */
+#grid .bin.item-off { opacity: 0.45; }
 /* Bins of the item hovered in the Items panel */
 #grid .bin.linked .body { fill: var(--bin-sel-fill); stroke: var(--accent); stroke-width: 2.5; }
 /* Spacers: grey with quieter text, so item bins stand out */
@@ -182,6 +184,10 @@ label.inline input { width: 72px; }
 .item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .item-status { flex: none; min-width: 76px; text-align: right; font-size: 13px; }
 .item-status .bad { color: var(--bad); }
+.item-status .muted { color: var(--muted); }
+.item-on { flex: none; margin: 0; }
+.item-row.off .item-name { color: var(--muted); text-decoration: line-through; }
+.item-row.off .bin-chip { background: #f1f2f4; border-color: #b6bcc6; color: var(--muted); }
 .add-bin { padding: 2px 8px; font-size: 13px; }
 .item-editor { display: none; padding: 4px 4px 12px 26px; }
 .item-row.open .item-editor { display: block; }
