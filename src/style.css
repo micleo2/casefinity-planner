@@ -154,7 +154,7 @@ header .steps { margin-left: auto; }
 .case-panel { margin-top: 14px; }
 .case-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 28px; align-items: start; }
 .case-cols h2 { margin-top: 4px; }
-.case-cols details { margin-top: 4px; }
+
 .steps { display: flex; gap: 8px; }
 .steps a {
   padding: 8px 16px; border-radius: 999px; border: 1px solid var(--input-border);

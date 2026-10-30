@@ -76,29 +76,27 @@
           <p class="hint" id="area-hint"></p>
         </div>
         <div>
-          <details>
-            <summary>Geometry (casefinity defaults)</summary>
-            <div class="row3">
-              <label>Pitch P [mm]<input id="gridSpacing" type="number" min="10" max="50" step="0.5" /></label>
-              <label>Bin height [mm]<input id="overallHeight" type="number" min="20" max="300" step="1" /></label>
-              <label>Wall [mm]<input id="wallThick" type="number" min="0.8" max="3" step="0.1" /></label>
-            </div>
-            <label>Clearance c [mm]<input id="clear" type="number" min="0" max="0.5" step="0.05" /></label>
-            <p class="hint" id="clear-hint"></p>
-            <div class="row3">
-              <label>Floor [mm]<input id="floorThick" type="number" min="0.6" max="4" step="0.2" /></label>
-              <label>Rib width [mm]<input id="ribWidth" type="number" min="0.6" max="4.5" step="0.1" /></label>
-              <label>Rib depth [mm]<input id="wallBump" type="number" min="0.5" max="3" step="0.1" /></label>
-            </div>
-            <div class="row3">
-              <label>Rib draft [°]<input id="draftAngle" type="number" min="0" max="5" step="0.5" /></label>
-              <label>Pull tab [mm]<input id="pullTabHeight" type="number" min="0.5" max="15" step="0.5" /></label>
-              <button id="reset-advanced" type="button" class="ghost">Reset</button>
-            </div>
-            <p class="hint">
-              These must match whatever your perimeter and other bins were made with.
-            </p>
-          </details>
+          <h2>Geometry</h2>
+          <div class="row3">
+            <label>Pitch P [mm]<input id="gridSpacing" type="number" min="10" max="50" step="0.5" /></label>
+            <label>Bin height [mm]<input id="overallHeight" type="number" min="20" max="300" step="1" /></label>
+            <label>Wall [mm]<input id="wallThick" type="number" min="0.8" max="3" step="0.1" /></label>
+          </div>
+          <label>Clearance c [mm]<input id="clear" type="number" min="0" max="0.5" step="0.05" /></label>
+          <p class="hint" id="clear-hint"></p>
+          <div class="row3">
+            <label>Floor [mm]<input id="floorThick" type="number" min="0.6" max="4" step="0.2" /></label>
+            <label>Rib width [mm]<input id="ribWidth" type="number" min="0.6" max="4.5" step="0.1" /></label>
+            <label>Rib depth [mm]<input id="wallBump" type="number" min="0.5" max="3" step="0.1" /></label>
+          </div>
+          <div class="row3">
+            <label>Rib draft [°]<input id="draftAngle" type="number" min="0" max="5" step="0.5" /></label>
+            <label>Pull tab [mm]<input id="pullTabHeight" type="number" min="0.5" max="15" step="0.5" /></label>
+            <button id="reset-advanced" type="button" class="ghost">Reset</button>
+          </div>
+          <p class="hint">
+            These must match whatever your perimeter and other bins were made with.
+          </p>
         </div>
         <div>
           <h2>Print bed</h2>
