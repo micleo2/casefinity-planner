@@ -123,10 +123,9 @@ const caseToggle = $<HTMLButtonElement>("case-toggle");
 function showCasePanel(open: boolean) {
   $("case-panel").hidden = !open;
   caseToggle.setAttribute("aria-expanded", String(open));
-  caseToggle.querySelector(".case-edit")!.textContent = open ? "Edit ▴" : "Edit ▾";
+  caseToggle.querySelector(".case-edit")!.textContent = open ? "▾" : "▸";
 }
 caseToggle.addEventListener("click", () => showCasePanel($("case-panel").hidden));
-$("case-done").addEventListener("click", () => showCasePanel(false));
 
 const presetSelect = $<HTMLSelectElement>("case-preset");
 presetSelect.add(new Option("--Custom--", ""));

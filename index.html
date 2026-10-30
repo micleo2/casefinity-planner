@@ -49,14 +49,16 @@
       </aside>
     </div>
 
-    <div id="prepare-case" class="prepare-case">
-      <button type="button" id="case-toggle" class="case-chip" aria-expanded="false" aria-controls="case-panel">
-        <span id="case-summary"></span><span class="case-edit">Edit ▾</span>
+    <section id="prepare-case" class="card case-card">
+      <button type="button" id="case-toggle" class="case-head" aria-expanded="false" aria-controls="case-panel">
+        <span class="caret case-edit">▸</span>
+        <span class="case-title">Case</span>
+        <span class="hint head-status" id="case-summary"></span>
       </button>
-    <section class="card case-panel" id="case-panel" hidden>
+    <div class="case-panel" id="case-panel" hidden>
       <div class="case-cols">
         <div>
-          <h2>Case</h2>
+          <h2>Size</h2>
           <label>Case preset<select id="case-preset"></select></label>
           <div class="row2">
             <label>Case length [mm]<input id="caseLength" type="number" min="60" max="900" step="0.001" /></label>
@@ -105,11 +107,10 @@
             <label>Y [mm]<input id="bedY" type="number" min="1" /></label>
             <label>Z [mm]<input id="bedZ" type="number" min="1" /></label>
           </div>
-          <button type="button" id="case-done" class="case-done">Done</button>
         </div>
       </div>
-    </section>
     </div>
+    </section>
 
     <div id="app" class="pack-page">
       <aside id="sidebar">
