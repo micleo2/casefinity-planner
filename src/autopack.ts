@@ -29,6 +29,10 @@ function packKey(layout: Layout): string {
 
 export class AutoPackCard {
   private options: PackOption[] = [];
+  /** The options are the closest layouts, not ones that hold every item. */
+  private partial = false;
+  /** Each sized item's snug bin, "3×13", for naming what a layout leaves out. */
+  private sizes = new Map<string, string>();
   private key = "";
   private list: HTMLElement;
   private summary: HTMLElement;
@@ -47,14 +51,19 @@ export class AutoPackCard {
     const s = layout.settings;
     const demands: Demand[] = [];
     const broken: string[] = [];
+    this.sizes.clear();
     for (const item of layout.items) {
       const r = sizeItem(item, s);
-      if (r.ok) demands.push({ id: item.id, unitsX: r.unitsX, unitsY: r.unitsY });
+      if (r.ok) {
+        demands.push({ id: item.id, unitsX: r.unitsX, unitsY: r.unitsY });
+        this.sizes.set(item.id, `${r.unitsX}×${r.unitsY}`);
+      }
       else broken.push(item.name || "unnamed item");
     }
     const fits = (ux: number, uy: number) => fitsBed(newBin(0, 0, ux, uy), s);
     const result = autoPack(s.areaX, s.areaY, demands, fits, { growth: "spacers" });
     this.options = result.options;
+    this.partial = result.partial;
     this.key = packKey(layout);
     const name = (id: string) => layout.items.find((it) => it.id === id)?.name || "unnamed item";
     const problems = [
@@ -76,6 +85,7 @@ export class AutoPackCard {
       this.list.replaceChildren();
     }
     if (!this.options.length && !this.list.childElementCount) {
+      this.summary.className = "hint";
       this.summary.textContent = n === 0
         ? "Add items on the Items page, then auto-pack them into transport-safe layouts."
         : `${n} item${n === 1 ? "" : "s"} from the Items page. Every layout fills whole rows or columns.`;
@@ -84,9 +94,12 @@ export class AutoPackCard {
 
   private renderOptions(problems: string[]) {
     const layout = this.hooks.layout();
-    this.summary.textContent = this.options.length
-      ? `${this.options.length} layout${this.options.length === 1 ? "" : "s"} found. Using one replaces the bins on the grid (Ctrl+Z undoes it).`
-      : "No layout fits every item — remove some items or use a bigger case.";
+    this.summary.textContent = !this.options.length
+      ? "None of the items fit this case."
+      : this.partial
+        ? "Not every item fits. These are the closest layouts — each lists what it leaves out. Use one as a start, or remove or shrink those items."
+        : `${this.options.length} layout${this.options.length === 1 ? "" : "s"} found. Using one replaces the bins on the grid (Ctrl+Z undoes it).`;
+    this.summary.className = this.partial ? "hint bad" : "hint";
     const cards = this.options.map((opt) => this.optionCard(opt, layout));
     const notes = problems.map((p) => Object.assign(document.createElement("p"), { className: "hint bad", textContent: p }));
     this.list.replaceChildren(...notes, ...cards);
@@ -118,8 +131,16 @@ export class AutoPackCard {
     text.append(
       Object.assign(document.createElement("strong"), { textContent: title }),
       Object.assign(document.createElement("span"), { className: "hint", textContent: stats }),
-      use,
     );
+    if (opt.left.length) {
+      const name = (id: string) => layout.items.find((it) => it.id === id)?.name || "unnamed item";
+      const n = opt.left.length;
+      text.append(Object.assign(document.createElement("span"), {
+        className: "hint bad",
+        textContent: `Leaves out ${n} item${n === 1 ? "" : "s"}: ${opt.left.map((id) => `${name(id)} (${this.sizes.get(id)})`).join(", ")}`,
+      }));
+    }
+    text.append(use);
     const card = document.createElement("div");
     card.className = "option";
     card.append(svg, text);

@@ -37,10 +37,14 @@ export interface PackOption {
   score: number;
   spacers: number;
   grown: number;
+  /** Demands this layout leaves out — only when nothing fits them all. */
+  left: string[];
 }
 
 export interface PackResult {
   options: PackOption[];
+  /** No layout holds every demand; the options are the closest ones (fewest left out). */
+  partial: boolean;
   /** Demands that fit no strip arrangement at all (too big for the area). */
   unplaceable: string[];
 }
@@ -71,19 +75,29 @@ function mulberry32(seed: number) {
   };
 }
 
-/** One first-fit pass into full-height strips of height H. Null if wider than W. */
-function fillStrips(demands: Demand[], W: number, H: number, rand: () => number, jitter: boolean): Strip[] | null {
+/**
+ * One first-fit pass into full-height strips of height H. A demand that doesn't
+ * fit either fails the pass (null) or, with `skip`, is left out and listed.
+ */
+function fillStrips(
+  demands: Demand[], W: number, H: number, rand: () => number, jitter: boolean, skip = false,
+): { strips: Strip[]; left: string[] } | null {
   const order = demands
     .map((d) => ({ d, key: Math.min(d.unitsX, d.unitsY) * 100 + Math.max(d.unitsX, d.unitsY) + (jitter ? rand() * 120 : 0) }))
     .sort((a, b) => b.key - a.key)
     .map((x) => x.d);
   const strips: Strip[] = [];
+  const left: string[] = [];
   let width = 0;
   for (const d of order) {
     const orients: [number, number][] = [[d.unitsX, d.unitsY], [d.unitsY, d.unitsX]].filter(
       ([w, h]) => h <= H && w <= W,
     ) as [number, number][];
-    if (orients.length === 0) return null;
+    if (orients.length === 0) {
+      if (!skip) return null;
+      left.push(d.id);
+      continue;
+    }
     let best: { strip: Strip; w: number; h: number; waste: number } | null = null;
     for (const strip of strips) {
       for (const [w, h] of orients) {
@@ -100,11 +114,15 @@ function fillStrips(demands: Demand[], W: number, H: number, rand: () => number,
     // New strip: long side down the strip keeps strips narrow, unless shuffled otherwise.
     const narrow = [...orients].sort((a, b) => a[0] - b[0]);
     const [w, h] = jitter && narrow.length > 1 && rand() < 0.3 ? narrow[1] : narrow[0];
-    if (width + w > W) return null;
+    if (width + w > W) {
+      if (!skip) return null;
+      left.push(d.id);
+      continue;
+    }
     width += w;
     strips.push({ width: w, used: h, entries: [{ id: d.id, w, h }] });
   }
-  return strips;
+  return { strips, left };
 }
 
 /** Split a spare rectangle into spacer bins that each fit the bed. */
@@ -193,7 +211,11 @@ const signature = (bins: Placed[]) =>
 
 /**
  * Up to two layouts: the best with full columns and the best with full rows,
- * better first. Deterministic for a seed.
+ * better first. When no layout holds every demand, the closest ones instead:
+ * up to three, each leaving out a different set of demands — fewest left out,
+ * then the fewest grid units, then score. Leaving out each single demand is
+ * tried outright (the usual "one item too many"); passes that skip whatever
+ * doesn't fit cover the rest. Deterministic for a seed.
  */
 export function autoPack(
   areaX: number,
@@ -207,33 +229,62 @@ export function autoPack(
     (d.unitsX <= areaX && d.unitsY <= areaY) || (d.unitsY <= areaX && d.unitsX <= areaY);
   const unplaceable = demands.filter((d) => !fitsArea(d)).map((d) => d.id);
   const usable = demands.filter(fitsArea);
-  const area = usable.reduce((s, d) => s + d.unitsX * d.unitsY, 0);
-  if (usable.length === 0 || area > areaX * areaY) return { options: [], unplaceable: usable.length ? usable.map((d) => d.id) : unplaceable };
+  if (usable.length === 0) return { options: [], partial: false, unplaceable };
+  const size = new Map(usable.map((d) => [d.id, d.unitsX * d.unitsY]));
+  const leftArea = (o: PackOption) => o.left.reduce((s, id) => s + size.get(id)!, 0);
+  const closer = (a: PackOption, b: PackOption) => a.left.length - b.left.length || leftArea(a) - leftArea(b) || a.score - b.score;
 
-  const candidates: PackOption[] = [];
-  for (const rule of ["columns", "rows"] as Rule[]) {
-    const [W, H] = rule === "columns" ? [areaX, areaY] : [areaY, areaX];
-    const rand = mulberry32(seed + (rule === "rows" ? 7919 : 0));
-    const seen = new Set<string>();
-    for (let t = 0; t < trials; t++) {
-      const strips = fillStrips(usable, W, H, rand, t > 0);
-      if (!strips) continue;
-      let bins = finish(strips, W, H, fits, growth);
-      if (rule === "rows") bins = transpose(bins);
-      const sig = signature(bins);
-      if (seen.has(sig)) continue;
-      seen.add(sig);
-      candidates.push({
-        rule,
-        bins,
-        score: score(bins),
-        spacers: bins.filter((b) => b.id === null).length,
-        grown: bins.filter((b) => b.grownFrom).length,
-      });
+  /** Every distinct layout of `pool` found in `n` passes per rule; `left` starts as `out`. */
+  const search = (pool: Demand[], n: number, skip: boolean, out: string[] = []) => {
+    const found: PackOption[] = [];
+    const room = areaX * areaY;
+    if (!skip && pool.reduce((s, d) => s + size.get(d.id)!, 0) > room) return found;
+    for (const rule of ["columns", "rows"] as Rule[]) {
+      const [W, H] = rule === "columns" ? [areaX, areaY] : [areaY, areaX];
+      const rand = mulberry32(seed + (rule === "rows" ? 7919 : 0));
+      const seen = new Set<string>();
+      for (let t = 0; t < n; t++) {
+        const filled = fillStrips(pool, W, H, rand, t > 0, skip);
+        if (!filled || filled.strips.length === 0) continue;
+        let bins = finish(filled.strips, W, H, fits, growth);
+        if (rule === "rows") bins = transpose(bins);
+        const sig = signature(bins);
+        if (seen.has(sig)) continue;
+        seen.add(sig);
+        found.push({
+          rule,
+          bins,
+          score: score(bins),
+          spacers: bins.filter((b) => b.id === null).length,
+          grown: bins.filter((b) => b.grownFrom).length,
+          left: [...out, ...filled.left],
+        });
+      }
     }
+    return found;
+  };
+
+  const full = search(usable, trials, false);
+  if (full.length) {
+    full.sort((a, b) => a.score - b.score);
+    const bestOf = (rule: Rule) => full.find((c) => c.rule === rule);
+    const options = [bestOf("columns"), bestOf("rows")].filter((o): o is PackOption => !!o);
+    return { options, partial: false, unplaceable };
   }
-  candidates.sort((a, b) => a.score - b.score);
-  const bestOf = (rule: Rule) => candidates.find((c) => c.rule === rule);
-  const options = [bestOf("columns"), bestOf("rows")].filter((o): o is PackOption => !!o).sort((a, b) => a.score - b.score);
-  return { options, unplaceable: candidates.length ? unplaceable : usable.map((d) => d.id).concat(unplaceable) };
+
+  const near = [
+    ...usable.flatMap((d) => search(usable.filter((x) => x !== d), Math.ceil(trials / 4), false, [d.id])),
+    ...search(usable, trials, true),
+  ].sort(closer);
+  // The best layout for each different set of left-out demands
+  const options: PackOption[] = [];
+  const sets = new Set<string>();
+  for (const o of near) {
+    const key = [...o.left].sort().join("|");
+    if (sets.has(key)) continue;
+    sets.add(key);
+    options.push(o);
+    if (options.length === 3) break;
+  }
+  return { options, partial: true, unplaceable };
 }

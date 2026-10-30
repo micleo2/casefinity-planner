@@ -143,12 +143,41 @@ test("growth never makes a bin too big for the bed", () => {
   for (const o of options) assertValid(o, 30, 20, [{ id: "a", unitsX: 2, unitsY: 2 }]);
 });
 
-test("too-big or too-many items are reported, not silently dropped", () => {
-  assert.deepEqual(autoPack(10, 10, [{ id: "huge", unitsX: 11, unitsY: 3 }], bed).unplaceable, ["huge"]);
+test("too-big items are reported, not silently dropped", () => {
+  const r = autoPack(10, 10, [{ id: "huge", unitsX: 11, unitsY: 3 }], bed);
+  assert.deepEqual(r.unplaceable, ["huge"]);
+  assert.equal(r.options.length, 0);
+});
+
+test("too many items: the closest layouts, listing what they leave out", () => {
+  // 30 × 4×4 bins in a 10×10 area: at most 4 fit (two strips of two)
   const crowd = Array.from({ length: 30 }, (_, i) => ({ id: `c${i}`, unitsX: 4, unitsY: 4 }));
   const r = autoPack(10, 10, crowd, bed);
-  assert.equal(r.options.length, 0);
-  assert.equal(r.unplaceable.length, 30);
+  assert.equal(r.partial, true);
+  assert.deepEqual(r.unplaceable, []);
+  assert.ok(r.options.length > 0);
+  for (const o of r.options) {
+    const placed = crowd.filter((d) => !o.left.includes(d.id));
+    assertValid(o, 10, 10, placed);
+    assert.equal(placed.length + o.left.length, 30, "every item placed or listed");
+    assert.equal(placed.length, 4);
+  }
+});
+
+test("left out: one big item rather than several small ones", () => {
+  // 21×14 case: the multimeter mockup plus a 13×7 duplicate can't all fit
+  const extra = [...mockup, { id: "spare", unitsX: 13, unitsY: 7 }];
+  const r = autoPack(21, 14, extra, bed);
+  assert.equal(r.partial, true);
+  const [best] = r.options;
+  assert.equal(best.left.length, 1, `left out: ${best.left.join(", ")}`);
+  assertValid(best, 21, 14, extra.filter((d) => !best.left.includes(d.id)));
+});
+
+test("a full fit isn't partial and leaves nothing out", () => {
+  const r = autoPack(21, 14, mockup, bed);
+  assert.equal(r.partial, false);
+  for (const o of r.options) assert.deepEqual(o.left, []);
 });
 
 test("a packed layout passes the checks panel", () => {

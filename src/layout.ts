@@ -129,7 +129,7 @@ export function runChecks(layout: Layout): Check[] {
   const placed = new Set(layout.bins.map((b) => b.itemId));
   const missing = layout.items.filter((it) => !placed.has(it.id));
   if (missing.length) {
-    warn(`Not in the layout yet: ${missing.map((it) => it.name || "unnamed item").join(", ")}. Auto-pack places them.`);
+    warn(`Not in the layout yet: ${missing.map((it) => it.name || "unnamed item").join(", ")}.`);
   }
   const cramped = layout.bins.filter((b) => {
     const item = b.itemId ? items.get(b.itemId) : undefined;
